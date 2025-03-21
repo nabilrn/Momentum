@@ -1,16 +1,48 @@
-# momentum
+# Momentum  
 
-A new Flutter project.
+Momentum is a Flutter-based habit tracker app designed to help users build and maintain positive habits.  
 
-## Getting Started
+## Features  
+- Add, edit, and delete habits  
+- Track daily progress  
+- Habit progress statistics  
+- Reminder notifications  
+- Modern and responsive UI  
 
-This project is a starting point for a Flutter application.
+## Installation  
+1. Ensure Flutter is installed on your system. If not, follow the [Flutter installation guide](https://docs.flutter.dev/get-started/install).  
+2. Clone this repository:  
+   ```bash
+   git clone https://github.com/username/momentum.git
+   cd momentum
+   ```
+3. Install dependencies:  
+   ```bash
+   flutter pub get
+   ```
+4. Run the app on an emulator or physical device:  
+   ```bash
+   flutter run
+   ```
 
-A few resources to get you started if this is your first Flutter project:
+## Technologies Used  
+- **Flutter** – Main framework  
+- **Dart** – Programming language  
+- **Supabase** – Backend services (authentication, database, storage)  
+- **Provider** – State management  
+- **SQLite** – Local data storage  
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## Documentation & References  
+- [Flutter Documentation](https://docs.flutter.dev/)  
+- [Flutter Cookbook](https://docs.flutter.dev/cookbook)  
+- [Dart Language](https://dart.dev/)  
+- [Supabase Documentation](https://supabase.com/docs)  
+- [Provider Package](https://pub.dev/packages/provider)  
+- [SQLite in Flutter](https://flutter.dev/docs/cookbook/persistence/sqlite)  
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Contributing  
+If you'd like to contribute to this project, feel free to submit a pull request or reach out.  
+
+---
+
+🚀 **Momentum** – Stay consistent, build better habits!
