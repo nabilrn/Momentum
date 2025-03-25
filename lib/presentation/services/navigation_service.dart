@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:momentum/presentation/pages/home_screen.dart';
 import 'package:momentum/presentation/pages/random_habit_screen.dart';
-import 'package:momentum/presentation/pages/setting_screen.dart';
+import 'package:momentum/presentation/pages/overview_screen.dart';
+import 'package:momentum/presentation/pages/add_habit_screen.dart';
+import 'package:momentum/presentation/pages/timer_screen.dart';
 
 class NavigationService {
   static void navigateTo(BuildContext context, String routeName) {
@@ -15,9 +17,15 @@ class NavigationService {
       case '/random_habit':
         page = const RandomHabitScreen();
         break;
-      case '/settings':
-        page = const SettingScreen();
+      case '/overview':
+        page = const OverviewScreen();
         break;
+      case '/add_habit':
+        page = const AddHabitScreen();
+        break;
+      case '/timer':
+        page = const TimerScreen();
+
       default:
         page = const HomeScreen();
     }
@@ -30,5 +38,12 @@ class NavigationService {
         child: page,
       ),
     );
+  }
+  static void goBack(BuildContext context) {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    } else {
+      navigateTo(context, '/home');
+    }
   }
 }

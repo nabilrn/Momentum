@@ -18,7 +18,7 @@ class AppTheme {
 
   // Bottom Navigation colors
   static const Color darkBottomNav = Color(0xFF080816);
-  static const Color lightBottomNav = Color(0xFF6C4BFF);
+  static const Color lightBottomNav = Color(0xFF4B6EFF);
 
 
   // Check if current theme is dark

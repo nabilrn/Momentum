@@ -18,23 +18,14 @@ class BottomNavigation extends StatelessWidget {
     final bool isDarkMode = AppTheme.isDarkMode(context);
 
     return Container(
-      decoration: BoxDecoration(
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.5),
-            blurRadius: 10,
-            spreadRadius: 2,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+
       child: CurvedNavigationBar(
         index: currentIndex,
         height: 60.0,
         items: const <Widget>[
           Icon(Icons.home, size: 30, color: Colors.white),
           Icon(Icons.accessibility_new, size: 30, color: Colors.white),
-          Icon(Icons.settings, size: 30, color: Colors.white),
+          Icon(Icons.access_time_filled, size: 30, color: Colors.white),
         ],
         color: isDarkMode ? AppTheme.darkBottomNav : AppTheme.lightBottomNav,
         buttonBackgroundColor: isDarkMode ? AppTheme.darkBottomNav : AppTheme.lightBottomNav,
@@ -53,7 +44,7 @@ class BottomNavigation extends StatelessWidget {
               NavigationService.navigateTo(context, '/random_habit');
               break;
             case 2:
-              NavigationService.navigateTo(context, '/settings');
+              NavigationService.navigateTo(context, '/overview');
               break;
           }
         },

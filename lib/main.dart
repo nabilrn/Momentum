@@ -3,8 +3,10 @@ import 'package:momentum/core/theme/app_theme.dart';
 import 'package:momentum/presentation/pages/splash_screen.dart';
 import 'package:momentum/presentation/pages/home_screen.dart';
 import 'package:momentum/presentation/pages/random_habit_screen.dart';
-import 'package:momentum/presentation/pages/setting_screen.dart';
+import 'package:momentum/presentation/pages/overview_screen.dart';
+import 'package:momentum/presentation/pages/add_habit_screen.dart';
 import 'package:page_transition/page_transition.dart';
+import 'package:momentum/presentation/pages/timer_screen.dart';
 
 void main() {
   runApp(const MomentumApp());
@@ -36,18 +38,32 @@ class MomentumApp extends StatelessWidget {
               child: const RandomHabitScreen(),
               duration: const Duration(milliseconds: 300),
             );
-          case '/settings':
+          case '/overview':
             return PageTransition(
               type: PageTransitionType.fade,
-              child: const SettingScreen(),
+              child: const OverviewScreen(),
               duration: const Duration(milliseconds: 300),
             );
-          default:
+          case '/add_habit':
+            return PageTransition(
+              type: PageTransitionType.fade,
+              child: const AddHabitScreen(),
+              duration: const Duration(milliseconds: 300),
+            );
+          case '/timer':
+            return PageTransition(
+              type: PageTransitionType.fade,
+              child: const TimerScreen(),
+              duration: const Duration(milliseconds: 300),
+            );
+            default:
             return PageTransition(
               type: PageTransitionType.fade,
               child: const HomeScreen(),
               duration: const Duration(milliseconds: 300),
             );
+
+
         }
       },
     );
