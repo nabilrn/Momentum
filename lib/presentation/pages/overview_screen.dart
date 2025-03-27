@@ -11,14 +11,22 @@ class OverviewScreen extends StatefulWidget {
 }
 
 class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProviderStateMixin {
-  int _currentIndex = 2; // Set to 2 since this is the Overview tab
+  int _currentIndex = 2;
   late AnimationController _animController;
 
-  // Sample data - would be fetched from your database in a real app
+  // Sample data
   final int totalHabits = 12;
   final int completedHabits = 8;
   final int streakDays = 15;
-  final double completionRate = 0.67; // 67%
+  final double completionRate = 0.67;
+
+  // Enhanced color palette
+  late Color primaryColor;
+  late Color accentColor;
+  late Color successColor;
+  late Color warningColor;
+  late Color dangerColor;
+  late Color neutralColor;
 
   // Sample weekly data for chart
   final List<Map<String, dynamic>> weeklyData = [
@@ -50,7 +58,6 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
     setState(() {
       _currentIndex = index;
     });
-    // Handle navigation based on tab index
     if (index == 0) {
       NavigationService.navigateTo(context, '/home');
     } else if (index == 1) {
@@ -58,20 +65,32 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
     }
   }
 
+  // Get color based on completion percentage
+  Color _getCompletionColor(double percentage) {
+    if (percentage >= 0.7) return successColor;
+    if (percentage >= 0.4) return warningColor;
+    return dangerColor;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = AppTheme.isDarkMode(context);
-    final primaryColor = const Color(0xFF4B6EFF);
-    final accentColor = const Color(0xFF6C4BFF);
+
+    // Initialize color palette
+    primaryColor = const Color(0xFF4B6EFF);
+    accentColor = const Color(0xFF6C4BFF);
+    successColor = const Color(0xFF4CAF50);
+    warningColor = const Color(0xFFFFC107);
+    dangerColor = const Color(0xFFF44336);
+    neutralColor = isDarkMode ? Colors.white70 : Colors.black54;
+
     final textColor = isDarkMode ? Colors.white : Colors.black;
     final secondaryTextColor = isDarkMode ? Colors.white70 : Colors.black87;
     final cardColor = isDarkMode ? const Color(0xFF1A1A24) : Colors.white;
 
     return Scaffold(
       extendBody: true,
-      backgroundColor: isDarkMode
-          ? const Color(0xFF121117)
-          : Colors.white,
+      backgroundColor: isDarkMode ? const Color(0xFF121117) : Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -84,6 +103,21 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
             fontWeight: FontWeight.bold,
           ),
         ),
+        // Added colorful action buttons
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              color: accentColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: IconButton(
+              icon: Icon(Icons.calendar_month, color: accentColor),
+              onPressed: () {},
+              tooltip: 'Calendar View',
+            ),
+          ),
+        ],
       ),
       body: Container(
         decoration: isDarkMode
@@ -92,8 +126,8 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFF121117), // Dark gradient start
-              Color(0xFF1A1A24), // Dark gradient end
+              Color(0xFF121117),
+              Color(0xFF1A1A24),
             ],
           ),
         )
@@ -101,12 +135,12 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
         child: SafeArea(
           bottom: false,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20.0, 16.0, 20.0, 90.0), // Increased bottom padding
+            padding: const EdgeInsets.fromLTRB(20.0, 16.0, 20.0, 90.0),
             physics: const BouncingScrollPhysics(),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Summary Cards Row
+                // Enhanced Summary Cards Row
                 Row(
                   children: [
                     _buildStatCard(
@@ -119,6 +153,12 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
                       textColor,
                       isDarkMode,
                       flex: 1,
+                      // Added radial gradient to icon background
+                      iconGradient: RadialGradient(
+                        colors: [primaryColor.withOpacity(0.7), primaryColor.withOpacity(0.2)],
+                        center: Alignment.center,
+                        radius: 0.8,
+                      ),
                     ),
                     const SizedBox(width: 16),
                     _buildStatCard(
@@ -131,12 +171,21 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
                       textColor,
                       isDarkMode,
                       flex: 1,
+                      // Added fire-like gradient to icon background
+                      iconGradient: RadialGradient(
+                        colors: [
+                          Colors.orange.withOpacity(0.7),
+                          accentColor.withOpacity(0.3)
+                        ],
+                        center: Alignment.center,
+                        radius: 0.8,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 24),
 
-                // Progress Circle
+                // Progress Circle with enhanced colors
                 _buildProgressSection(
                   context,
                   isDarkMode,
@@ -146,18 +195,41 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
                 ),
                 const SizedBox(height: 24),
 
-                // Weekly Performance
-                Text(
-                  'Weekly Performance',
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                // Weekly Performance section
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Weekly Performance',
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    // Added colored tag for weekly progress
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [primaryColor, accentColor],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '71% weekly',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
 
-                // Weekly Chart
+                // Weekly Chart with enhanced colors
                 _buildWeeklyChart(
                   context,
                   isDarkMode,
@@ -186,6 +258,7 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
       Color textColor,
       bool isDarkMode, {
         int flex = 1,
+        Gradient? iconGradient,
       }) {
     return Expanded(
       flex: flex,
@@ -206,7 +279,7 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: iconColor.withOpacity(0.1),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -228,10 +301,12 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
                     fontSize: 14,
                   ),
                 ),
+                // Enhanced icon container with gradient
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.1),
+                    gradient: iconGradient,
+                    color: iconGradient == null ? iconColor.withOpacity(0.1) : null,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -264,6 +339,9 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
       Color secondaryTextColor,
       Color primaryColor,
       ) {
+    // Determine color based on completion rate
+    final completionColor = _getCompletionColor(completionRate);
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -281,7 +359,7 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: completionColor.withOpacity(0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -292,13 +370,25 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
       ),
       child: Column(
         children: [
-          Text(
-            'Habit Completion Rate',
-            style: TextStyle(
-              color: textColor,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Added colored icon before the title
+              Icon(
+                Icons.insights_rounded,
+                color: completionColor,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Habit Completion Rate',
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 24),
           Row(
@@ -308,36 +398,65 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
                 width: 120,
                 height: 120,
                 child: TweenAnimationBuilder<double>(
-                    tween: Tween<double>(begin: 0.0, end: completionRate),
-                    duration: const Duration(milliseconds: 1500),
-                    builder: (context, value, _) {
-                      return Stack(
-                        children: [
-                          SizedBox(
-                            width: 120,
-                            height: 120,
-                            child: CircularProgressIndicator(
-                              value: value,
-                              strokeWidth: 10,
-                              backgroundColor: isDarkMode
-                                  ? Colors.grey.shade800
-                                  : Colors.grey.shade200,
-                              valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
-                            ),
+                  tween: Tween<double>(begin: 0.0, end: completionRate),
+                  duration: const Duration(milliseconds: 1500),
+                  builder: (context, value, _) {
+                    return Stack(
+                      children: [
+                        // Added multiple progress indicators with different colors
+                        SizedBox(
+                          width: 120,
+                          height: 120,
+                          child: CircularProgressIndicator(
+                            value: value,
+                            strokeWidth: 10,
+                            backgroundColor: isDarkMode
+                                ? Colors.grey.shade800
+                                : Colors.grey.shade200,
+                            valueColor: AlwaysStoppedAnimation<Color>(completionColor),
                           ),
-                          Center(
-                            child: Text(
-                              '${(value * 100).toInt()}%',
-                              style: TextStyle(
-                                color: textColor,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
+                        ),
+                        // Inner progress indicator with gradient stroke
+                        Positioned.fill(
+                          child: Padding(
+                            padding: const EdgeInsets.all(15),
+                            child: CircularProgressIndicator(
+                              value: value * 0.8, // Slightly less progress
+                              strokeWidth: 5,
+                              backgroundColor: Colors.transparent,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                accentColor.withOpacity(0.7),
                               ),
                             ),
                           ),
-                        ],
-                      );
-                    }
+                        ),
+                        Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                '${(value * 100).toInt()}%',
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              // Added small colored label under percentage
+                              Text(
+                                value > 0.6 ? 'Good' : 'Keep going',
+                                style: TextStyle(
+                                  color: completionColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
               Column(
@@ -346,7 +465,7 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
                   _buildLegendItem(
                     'Completed',
                     '$completedHabits habits',
-                    primaryColor,
+                    successColor,
                     textColor,
                     secondaryTextColor,
                   ),
@@ -376,6 +495,7 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
       ) {
     return Row(
       children: [
+        // Enhanced legend dot with inner shadow
         Container(
           width: 14,
           height: 14,
@@ -389,6 +509,16 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
                 spreadRadius: 1,
               ),
             ],
+          ),
+          child: Center(
+            child: Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.3),
+                shape: BoxShape.circle,
+              ),
+            ),
           ),
         ),
         const SizedBox(width: 12),
@@ -449,7 +579,7 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
             ? Border.all(color: Colors.white.withOpacity(0.03))
             : Border.all(color: Colors.grey.shade100),
       ),
-      height: 220, // Increased height to prevent overflow
+      height: 220,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -457,6 +587,10 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
           final int index = entry.key;
           final day = entry.value;
           final double completionPercentage = day['completed'] / day['total'];
+
+          // Determine bar color based on completion percentage
+          final Color barColor = _getCompletionColor(completionPercentage);
+
           return TweenAnimationBuilder<double>(
             tween: Tween<double>(begin: 0.0, end: 1.0),
             duration: Duration(milliseconds: 600 + (index * 100)),
@@ -464,39 +598,59 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
             builder: (context, value, child) {
               return Column(
                 mainAxisAlignment: MainAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min, // Prevents overflow
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    '${day['completed']}/${day['total']}',
-                    style: TextStyle(
-                      color: secondaryTextColor,
-                      fontSize: 10,
+                  // Enhanced ratio display with color
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: barColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${day['completed']}/${day['total']}',
+                      style: TextStyle(
+                        color: barColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
+                  // Enhanced bar with gradient
                   Container(
                     width: 30,
-                    height: 100 * completionPercentage * value, // Reduced height slightly
+                    height: 100 * completionPercentage * value,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          primaryColor,
-                          primaryColor.withOpacity(0.7),
+                          barColor,
+                          barColor.withOpacity(0.7),
                         ],
                       ),
                       borderRadius: BorderRadius.circular(10),
                       boxShadow: [
                         BoxShadow(
-                          color: primaryColor.withOpacity(0.2),
+                          color: barColor.withOpacity(0.2),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
                         ),
                       ],
                     ),
+                    // Added small icon inside the bar
+                    child: completionPercentage >= 0.8 ?
+                    Center(
+                      child: Icon(
+                        Icons.star,
+                        color: Colors.white.withOpacity(0.7),
+                        size: 12,
+                      ),
+                    ) : null,
                   ),
                   const SizedBox(height: 12),
+                  // Day indicator with enhanced design
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
@@ -504,11 +658,13 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
                           ? Colors.black.withOpacity(0.2)
                           : Colors.grey.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
+                      border: day['day'] == 'Sun' ?
+                      Border.all(color: primaryColor.withOpacity(0.3)) : null,
                     ),
                     child: Text(
                       day['day'],
                       style: TextStyle(
-                        color: secondaryTextColor,
+                        color: day['day'] == 'Sun' ? primaryColor : secondaryTextColor,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),

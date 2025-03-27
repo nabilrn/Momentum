@@ -12,27 +12,26 @@ class RandomHabitScreen extends StatefulWidget {
 }
 
 class _RandomHabitScreenState extends State<RandomHabitScreen> with SingleTickerProviderStateMixin {
-  int _currentIndex = 1; // Set to 1 since this is the Random Habit tab
+  int _currentIndex = 1;
   int _currentHabitIndex = 0;
   bool _isCountdownActive = false;
   late AnimationController _animationController;
   late Animation<double> _animation;
 
-  // Sample random habits with different durations
-// Update the _randomHabits list to include priority
+  // Updated habits with category and removed icon dependency
   final List<Map<String, dynamic>> _randomHabits = [
-    {'name': 'Morning Jog', 'duration': 15,  'priority': 'High'},
-    {'name': 'Meditation', 'duration': 10,  'priority': 'Low'},
-    {'name': 'Reading', 'duration': 20,  'priority': 'Medium'},
-    {'name': 'Stretching', 'duration': 5,  'priority': 'Low'},
-    {'name': 'Journaling', 'duration': 15,  'priority': 'Medium'},
+    {'name': 'Morning Jog', 'duration': 15, 'priority': 'High', 'category': 'Fitness'},
+    {'name': 'Meditation', 'duration': 10, 'priority': 'Low', 'category': 'Wellness'},
+    {'name': 'Reading', 'duration': 20, 'priority': 'Medium', 'category': 'Knowledge'},
+    {'name': 'Stretching', 'duration': 5, 'priority': 'Low', 'category': 'Fitness'},
+    {'name': 'Journaling', 'duration': 15, 'priority': 'Medium', 'category': 'Mindfulness'},
   ];
+
   @override
   void initState() {
     super.initState();
     _selectRandomHabit();
 
-    // Initialize animation controller
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -64,14 +63,11 @@ class _RandomHabitScreenState extends State<RandomHabitScreen> with SingleTicker
     });
   }
 
-
-
   void _onTabTapped(int index) {
     setState(() {
       _currentIndex = index;
     });
 
-    // Handle navigation based on tab index
     if (index == 0) {
       NavigationService.navigateTo(context, '/home');
     } else if (index == 2) {
@@ -85,9 +81,7 @@ class _RandomHabitScreenState extends State<RandomHabitScreen> with SingleTicker
     final currentHabit = _randomHabits[_currentHabitIndex];
     final primaryColor = const Color(0xFF4B6EFF);
     final textColor = isDarkMode ? Colors.white : Colors.black;
-    final backgroundColor = isDarkMode
-        ? const Color(0xFF121117)
-        : Colors.white;
+    final backgroundColor = isDarkMode ? const Color(0xFF121117) : Colors.white;
 
     return Scaffold(
       extendBody: true,
@@ -105,22 +99,26 @@ class _RandomHabitScreenState extends State<RandomHabitScreen> with SingleTicker
           ),
         ),
         actions: [
-          IconButton(
-            icon: Icon(
-              Icons.refresh_rounded,
-              color: textColor,
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: isDarkMode ? Colors.white.withOpacity(0.05) : Colors.grey.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
             ),
-            onPressed: _selectRandomHabit,
+            child: IconButton(
+              icon: Icon(
+                Icons.refresh_rounded,
+                color: textColor,
+              ),
+              onPressed: _selectRandomHabit,
+              tooltip: 'New Random Habit',
+            ),
           ),
         ],
       ),
       body: GestureDetector(
         onHorizontalDragEnd: (details) {
-          if (details.primaryVelocity! > 0) {
-            // Swipe right
-            _selectRandomHabit();
-          } else if (details.primaryVelocity! < 0) {
-            // Swipe left
+          if (details.primaryVelocity! > 0 || details.primaryVelocity! < 0) {
             _selectRandomHabit();
           }
         },
@@ -131,13 +129,12 @@ class _RandomHabitScreenState extends State<RandomHabitScreen> with SingleTicker
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Color(0xFF121117), // Dark gradient start
-                Color(0xFF1A1A24), // Dark gradient end
+                Color(0xFF121117),
+                Color(0xFF1A1A24),
               ],
             ),
           )
               : BoxDecoration(
-            color: Colors.white,
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
@@ -147,73 +144,75 @@ class _RandomHabitScreenState extends State<RandomHabitScreen> with SingleTicker
               ],
             ),
           ),
-          child: Column(
-            children: [
-              // Progress indicators
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20.0, 16.0, 20.0, 8.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(_randomHabits.length, (index) {
-                    return _buildProgressIndicator(
-                      index == _currentHabitIndex,
-                      isDarkMode,
-                      index,
-                    );
-                  }),
+          child: SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                // Progress indicators
+                _buildProgressBar(isDarkMode),
+
+                // Habit card
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                  child: _buildHabitCard(currentHabit, isDarkMode, textColor),
                 ),
-              ),
 
-              // Habit card
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-                child: _buildHabitCard(currentHabit, isDarkMode, textColor),
-              ),
-
-              // Timer circle
-              Expanded(
-                child: Center(
-                  child: _buildTimerCircle(
-                    currentHabit,
-                    isDarkMode,
-                    primaryColor,
+                // Timer circle
+                Expanded(
+                  child: Center(
+                    child: _buildTimerCircle(currentHabit, isDarkMode, primaryColor),
                   ),
                 ),
-              ),
 
-              // Action buttons
-              // Action buttons
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 80.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _buildActionButton(
-                      'Open Timer',
-                      Icons.timer_outlined,
-                      primaryColor,
-                      isDarkMode,
-                          () => NavigationService.navigateTo(context, '/timer'),
-                    ),
-                    const SizedBox(width: 16),
-                    _buildActionButton(
-                      'Skip',
-                      Icons.skip_next_rounded,
-                      isDarkMode ? Colors.white24 : Colors.black12,
-                      isDarkMode,
-                      _selectRandomHabit,
-                      isOutlined: true,
-                    ),
-                  ],
+                // Action buttons
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 100.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildActionButton(
+                        'Open Timer',
+                        Icons.timer_outlined,
+                        primaryColor,
+                        isDarkMode,
+                            () => NavigationService.navigateTo(context, '/timer'),
+                      ),
+                      const SizedBox(width: 16),
+                      _buildActionButton(
+                        'Skip',
+                        Icons.skip_next_rounded,
+                        isDarkMode ? Colors.white24 : Colors.black12,
+                        isDarkMode,
+                        _selectRandomHabit,
+                        isOutlined: true,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
       bottomNavigationBar: BottomNavigation(
         currentIndex: _currentIndex,
         onTap: _onTabTapped,
+      ),
+    );
+  }
+
+  Widget _buildProgressBar(bool isDarkMode) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20.0, 16.0, 20.0, 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: List.generate(_randomHabits.length, (index) {
+          return _buildProgressIndicator(
+            index == _currentHabitIndex,
+            isDarkMode,
+            index,
+          );
+        }),
       ),
     );
   }
@@ -241,7 +240,6 @@ class _RandomHabitScreenState extends State<RandomHabitScreen> with SingleTicker
   }
 
   Widget _buildHabitCard(Map<String, dynamic> habit, bool isDarkMode, Color textColor) {
-    // Get priority color based on priority value
     final Color priorityColor = _getPriorityColor(habit['priority']);
 
     return Container(
@@ -261,16 +259,23 @@ class _RandomHabitScreenState extends State<RandomHabitScreen> with SingleTicker
       ),
       child: Row(
         children: [
+          // Priority indicator instead of icon
           Container(
-            padding: const EdgeInsets.all(12),
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
               color: priorityColor.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              habit['icon'],
-              color: priorityColor,
-              size: 28,
+            child: Center(
+              child: Text(
+                habit['name'].substring(0, 1),
+                style: TextStyle(
+                  color: priorityColor,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 16),
@@ -280,12 +285,15 @@ class _RandomHabitScreenState extends State<RandomHabitScreen> with SingleTicker
               children: [
                 Row(
                   children: [
-                    Text(
-                      habit['name'],
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
+                    Flexible(
+                      child: Text(
+                        habit['name'],
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -306,13 +314,32 @@ class _RandomHabitScreenState extends State<RandomHabitScreen> with SingleTicker
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '${habit['duration']} minutes of focused time',
-                  style: TextStyle(
-                    color: isDarkMode ? Colors.white70 : Colors.black54,
-                    fontSize: 14,
-                  ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: isDarkMode ? Colors.white.withOpacity(0.05) : Colors.grey.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        habit['category'],
+                        style: TextStyle(
+                          color: isDarkMode ? Colors.white70 : Colors.black54,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${habit['duration']} min',
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -326,7 +353,6 @@ class _RandomHabitScreenState extends State<RandomHabitScreen> with SingleTicker
     );
   }
 
-// Add this helper method to get the color based on priority
   Color _getPriorityColor(String priority) {
     switch (priority) {
       case 'Low':
@@ -345,7 +371,6 @@ class _RandomHabitScreenState extends State<RandomHabitScreen> with SingleTicker
       bool isDarkMode,
       Color primaryColor,
       ) {
-    // Get priority color based on priority value
     final Color priorityColor = _getPriorityColor(habit['priority']);
 
     return AnimatedBuilder(
@@ -368,20 +393,26 @@ class _RandomHabitScreenState extends State<RandomHabitScreen> with SingleTicker
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // Outer progress circle
-              SizedBox(
-                width: 220,
-                height: 220,
-                child: CircularProgressIndicator(
-                  value: _isCountdownActive ? null : 1.0,
-                  strokeWidth: 12,
-                  backgroundColor: isDarkMode
-                      ? Colors.white.withOpacity(0.05)
-                      : Colors.grey.withOpacity(0.1),
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    priorityColor.withOpacity(_isCountdownActive ? 1.0 : 0.7),
-                  ),
-                ),
+              // Animated outer ring
+              TweenAnimationBuilder(
+                tween: Tween(begin: 0.0, end: 1.0),
+                duration: const Duration(seconds: 1),
+                builder: (context, value, child) {
+                  return SizedBox(
+                    width: 220,
+                    height: 220,
+                    child: CircularProgressIndicator(
+                      value: _isCountdownActive ? null : value,
+                      strokeWidth: 12,
+                      backgroundColor: isDarkMode
+                          ? Colors.white.withOpacity(0.05)
+                          : Colors.grey.withOpacity(0.1),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        priorityColor.withOpacity(_isCountdownActive ? 1.0 : 0.7),
+                      ),
+                    ),
+                  );
+                },
               ),
 
               // Inner circle with time
@@ -403,7 +434,6 @@ class _RandomHabitScreenState extends State<RandomHabitScreen> with SingleTicker
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Removed the icon here
                     Text(
                       '${habit['duration']}',
                       style: TextStyle(
@@ -443,11 +473,13 @@ class _RandomHabitScreenState extends State<RandomHabitScreen> with SingleTicker
         decoration: BoxDecoration(
           gradient: isOutlined
               ? null
-              : LinearGradient(
+              : const LinearGradient(
             colors: [
-              const Color(0xFF4B6EFF),
-              const Color(0xFF3B5AF8),
+              Color(0xFF4B6EFF),
+              Color(0xFF3B5AF8),
             ],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
           ),
           color: isOutlined ? Colors.transparent : null,
           borderRadius: BorderRadius.circular(16),

@@ -5,6 +5,8 @@ import 'package:momentum/presentation/pages/random_habit_screen.dart';
 import 'package:momentum/presentation/pages/overview_screen.dart';
 import 'package:momentum/presentation/pages/add_habit_screen.dart';
 import 'package:momentum/presentation/pages/timer_screen.dart';
+import 'package:momentum/presentation/pages/settings_screen.dart';
+import 'package:momentum/presentation/pages/account_screen.dart';
 
 class NavigationService {
   static void navigateTo(BuildContext context, String routeName) {
@@ -25,7 +27,10 @@ class NavigationService {
         break;
       case '/timer':
         page = const TimerScreen();
-
+      case '/settings':
+        page = const SettingsScreen();
+      case '/account':
+        page = const AccountScreen();
       default:
         page = const HomeScreen();
     }

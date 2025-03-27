@@ -7,6 +7,8 @@ import 'package:momentum/presentation/pages/overview_screen.dart';
 import 'package:momentum/presentation/pages/add_habit_screen.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:momentum/presentation/pages/timer_screen.dart';
+import 'package:momentum/presentation/pages/settings_screen.dart';
+import 'package:momentum/presentation/pages/account_screen.dart';
 
 void main() {
   runApp(const MomentumApp());
@@ -56,6 +58,19 @@ class MomentumApp extends StatelessWidget {
               child: const TimerScreen(),
               duration: const Duration(milliseconds: 300),
             );
+          case '/settings':
+            return PageTransition(
+              type: PageTransitionType.fade,
+              child: const SettingsScreen(),
+              duration: const Duration(milliseconds: 300),
+            );
+          case 'account':
+            return PageTransition(
+              type: PageTransitionType.fade,
+              child: const AccountScreen(),
+              duration: const Duration(milliseconds: 300),
+            );
+
             default:
             return PageTransition(
               type: PageTransitionType.fade,
