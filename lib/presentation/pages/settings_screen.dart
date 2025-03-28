@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:momentum/core/theme/app_theme.dart';
 import '../services/navigation_service.dart';
+import '../widgets/settings/sections/appearance_section.dart';
+import '../widgets/settings/sections/notifications_section.dart';
+import '../widgets/settings/sections/account_section.dart';
+import '../widgets/settings/sections/about_section.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -32,6 +36,21 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   void dispose() {
     _animationController.dispose();
     super.dispose();
+  }
+
+  void _handleThemeChanged(String? newValue) {
+    if (newValue != null) {
+      setState(() {
+        _themeMode = newValue;
+      });
+      // Here you would update the app's theme
+    }
+  }
+
+  void _handleNotificationChanged(bool value) {
+    setState(() {
+      _notificationsEnabled = value;
+    });
   }
 
   @override
@@ -81,265 +100,49 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             padding: const EdgeInsets.all(20),
             children: [
               // Appearance Section
-              _buildSectionHeader('Appearance', Icons.palette_outlined, textColor),
-              const SizedBox(height: 12),
-              _buildSettingsCard(
-                context,
-                cardColor,
-                Column(
-                  children: [
-                    _buildThemeOption('System Default', 'system', isDarkMode, textColor, primaryColor),
-                    const Divider(height: 1),
-                    _buildThemeOption('Light Mode', 'light', isDarkMode, textColor, primaryColor),
-                    const Divider(height: 1),
-                    _buildThemeOption('Dark Mode', 'dark', isDarkMode, textColor, primaryColor),
-                  ],
-                ),
+              AppearanceSection(
+                isDarkMode: isDarkMode,
+                textColor: textColor,
+                primaryColor: primaryColor,
+                cardColor: cardColor,
+                themeMode: _themeMode,
+                onThemeChanged: _handleThemeChanged,
               ),
               const SizedBox(height: 28),
 
               // Notifications Section
-              _buildSectionHeader('Notifications', Icons.notifications_outlined, textColor),
-              const SizedBox(height: 12),
-              _buildSettingsCard(
-                context,
-                cardColor,
-                SwitchListTile(
-                  title: Text(
-                    'Habit Reminders',
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  subtitle: Text(
-                    'Receive notifications for your habit schedule',
-                    style: TextStyle(
-                      color: subtitleColor,
-                      fontSize: 14,
-                    ),
-                  ),
-                  value: _notificationsEnabled,
-                  activeColor: primaryColor,
-                  onChanged: (value) {
-                    setState(() {
-                      _notificationsEnabled = value;
-                    });
-                  },
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                ),
+              NotificationsSection(
+                isDarkMode: isDarkMode,
+                textColor: textColor,
+                subtitleColor: subtitleColor,
+                primaryColor: primaryColor,
+                cardColor: cardColor,
+                notificationsEnabled: _notificationsEnabled,
+                onNotificationChanged: _handleNotificationChanged,
               ),
               const SizedBox(height: 28),
 
               // Account Section
-              _buildSectionHeader('Account', Icons.person_outline, textColor),
-              const SizedBox(height: 12),
-              _buildSettingsCard(
-                context,
-                cardColor,
-                Column(
-                  children: [
-                    _buildSettingsItem(
-                      'Data Backup',
-                      'Back up your habits progress to cloud',
-                      Icons.backup_outlined,
-                      isDarkMode,
-                      textColor,
-                      subtitleColor,
-                      onTap: () {
-                        // Handle backup action
-                      },
-                    ),
-                    const Divider(height: 1),
-                    _buildSettingsItem(
-                      'Export Data',
-                      'Export your habits and progress',
-                      Icons.download_outlined,
-                      isDarkMode,
-                      textColor,
-                      subtitleColor,
-                      onTap: () {
-                        // Handle export action
-                      },
-                    ),
-                  ],
-                ),
+              AccountSection(
+                isDarkMode: isDarkMode,
+                textColor: textColor,
+                subtitleColor: subtitleColor,
+                cardColor: cardColor,
               ),
               const SizedBox(height: 28),
 
               // About Section
-              _buildSectionHeader('About', Icons.info_outline, textColor),
-              const SizedBox(height: 12),
-              _buildSettingsCard(
-                context,
-                cardColor,
-                Column(
-                  children: [
-                    _buildSettingsItem(
-                      'Version',
-                      '1.0.0',
-                      Icons.new_releases_outlined,
-                      isDarkMode,
-                      textColor,
-                      subtitleColor,
-                    ),
-                    const Divider(height: 1),
-                    _buildSettingsItem(
-                      'Terms of Service',
-                      'Read our terms and conditions',
-                      Icons.description_outlined,
-                      isDarkMode,
-                      textColor,
-                      subtitleColor,
-                      onTap: () {
-                        // Handle terms action
-                      },
-                    ),
-                    const Divider(height: 1),
-                    _buildSettingsItem(
-                      'Privacy Policy',
-                      'Read our privacy policy',
-                      Icons.privacy_tip_outlined,
-                      isDarkMode,
-                      textColor,
-                      subtitleColor,
-                      onTap: () {
-                        // Handle privacy action
-                      },
-                    ),
-                  ],
-                ),
+              AboutSection(
+                isDarkMode: isDarkMode,
+                textColor: textColor,
+                subtitleColor: subtitleColor,
+                cardColor: cardColor,
               ),
               const SizedBox(height: 40),
             ],
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title, IconData icon, Color textColor) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 8.0),
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            size: 20,
-            color: const Color(0xFF4B6EFF),
-          ),
-          const SizedBox(width: 10),
-          Text(
-            title,
-            style: TextStyle(
-              color: textColor,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSettingsCard(BuildContext context, Color cardColor, Widget child) {
-    final isDarkMode = AppTheme.isDarkMode(context);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: isDarkMode
-                ? Colors.black.withOpacity(0.2)
-                : Colors.grey.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: child,
-      ),
-    );
-  }
-
-  Widget _buildThemeOption(String title, String value, bool isDarkMode, Color textColor, Color primaryColor) {
-    return RadioListTile<String>(
-      title: Text(
-        title,
-        style: TextStyle(
-          color: textColor,
-          fontSize: 16,
-          fontWeight: _themeMode == value ? FontWeight.w600 : FontWeight.w400,
-        ),
-      ),
-      value: value,
-      groupValue: _themeMode,
-      activeColor: primaryColor,
-      onChanged: (String? newValue) {
-        if (newValue != null) {
-          setState(() {
-            _themeMode = newValue;
-          });
-          // Here you would update the app's theme
-        }
-      },
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-    );
-  }
-
-  Widget _buildSettingsItem(
-      String title,
-      String subtitle,
-      IconData icon,
-      bool isDarkMode,
-      Color textColor,
-      Color subtitleColor, {
-        VoidCallback? onTap,
-      }) {
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: isDarkMode
-              ? Colors.white.withOpacity(0.05)
-              : const Color(0xFF4B6EFF).withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(
-          icon,
-          color: const Color(0xFF4B6EFF),
-          size: 20,
-        ),
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: textColor,
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: TextStyle(
-          color: subtitleColor,
-          fontSize: 14,
-        ),
-      ),
-      trailing: onTap != null
-          ? const Icon(
-        Icons.chevron_right_rounded,
-        color: Color(0xFF6B89FF),
-        size: 22,
-      )
-          : null,
-      onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     );
   }
 }

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import '../services/navigation_service.dart';
 import 'package:momentum/core/theme/app_theme.dart';
+import '../widgets/add_habit/form_label.dart';
+import '../widgets/add_habit/custom_text_field.dart';
+import '../widgets/add_habit/priority_selector.dart';
+import '../widgets/add_habit/time_selector.dart';
 
 class AddHabitScreen extends StatefulWidget {
   const AddHabitScreen({super.key});
@@ -205,9 +209,13 @@ class _AddHabitScreenState extends State<AddHabitScreen> with SingleTickerProvid
                   const SizedBox(height: 40),
 
                   // Habit Name
-                  _buildFormLabel('Habit Name', textColor, Icons.edit_rounded),
+                  FormLabel(
+                    label: 'Habit Name',
+                    textColor: textColor,
+                    icon: Icons.edit_rounded,
+                  ),
                   const SizedBox(height: 12),
-                  _buildTextField(
+                  CustomTextField(
                     controller: _habitNameController,
                     hintText: 'e.g., Morning Meditation',
                     prefixIcon: Icons.lightbulb_outline,
@@ -222,9 +230,13 @@ class _AddHabitScreenState extends State<AddHabitScreen> with SingleTickerProvid
                   const SizedBox(height: 28),
 
                   // Focus Time
-                  _buildFormLabel('Focus Time (minutes)', textColor, Icons.hourglass_top_rounded),
+                  FormLabel(
+                    label: 'Focus Time (minutes)',
+                    textColor: textColor,
+                    icon: Icons.hourglass_top_rounded,
+                  ),
                   const SizedBox(height: 12),
-                  _buildTextField(
+                  CustomTextField(
                     controller: _focusTimeController,
                     hintText: 'e.g., 30',
                     prefixIcon: Icons.timer_outlined,
@@ -243,15 +255,38 @@ class _AddHabitScreenState extends State<AddHabitScreen> with SingleTickerProvid
                   const SizedBox(height: 28),
 
                   // Type Selection
-                  _buildFormLabel('Priority Level', textColor, Icons.flag_rounded),
+                  FormLabel(
+                    label: 'Priority Level',
+                    textColor: textColor,
+                    icon: Icons.flag_rounded,
+                  ),
                   const SizedBox(height: 16),
-                  _buildPrioritySelector(isDarkMode, textColor, primaryColor),
+                  PrioritySelector(
+                    isDarkMode: isDarkMode,
+                    textColor: textColor,
+                    selectedType: _selectedType,
+                    onPrioritySelected: (type) {
+                      setState(() {
+                        _selectedType = type;
+                      });
+                    },
+                  ),
                   const SizedBox(height: 28),
 
                   // Start Time
-                  _buildFormLabel('Start Time', textColor, Icons.schedule_rounded),
+                  FormLabel(
+                    label: 'Start Time',
+                    textColor: textColor,
+                    icon: Icons.schedule_rounded,
+                  ),
                   const SizedBox(height: 12),
-                  _buildTimeSelector(isDarkMode, textColor, primaryColor),
+                  TimeSelector(
+                    isDarkMode: isDarkMode,
+                    textColor: textColor,
+                    primaryColor: primaryColor,
+                    selectedTime: _startTime,
+                    onTap: _showTimePicker,
+                  ),
                   const SizedBox(height: 48),
 
                   // Save Button
@@ -302,213 +337,6 @@ class _AddHabitScreenState extends State<AddHabitScreen> with SingleTickerProvid
                   ),
                 ],
               ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFormLabel(String label, Color textColor, IconData icon) {
-    return Row(
-      children: [
-        Icon(
-          icon,
-          size: 18,
-          color: const Color(0xFF4B6EFF),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: TextStyle(
-            color: textColor,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String hintText,
-    required IconData prefixIcon,
-    required bool isDarkMode,
-    TextInputType keyboardType = TextInputType.text,
-    String? Function(String?)? validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      style: TextStyle(
-        color: isDarkMode ? Colors.white : Colors.black87,
-        fontSize: 16,
-      ),
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: TextStyle(
-          color: isDarkMode ? Colors.white38 : Colors.black38,
-        ),
-        prefixIcon: Icon(
-          prefixIcon,
-          color: const Color(0xFF4B6EFF),
-          size: 22,
-        ),
-        filled: true,
-        fillColor: isDarkMode ? const Color(0xFF252836) : Colors.grey.shade100,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: const Color(0xFF4B6EFF),
-            width: 2,
-          ),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: 18,
-          horizontal: 20,
-        ),
-        errorStyle: const TextStyle(
-          color: Colors.redAccent,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      validator: validator,
-    );
-  }
-
-  Widget _buildPrioritySelector(bool isDarkMode, Color textColor, Color primaryColor) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        _buildPriorityOption('Low', Colors.green, isDarkMode, textColor),
-        _buildPriorityOption('Medium', Colors.orange, isDarkMode, textColor),
-        _buildPriorityOption('High', Colors.red, isDarkMode, textColor),
-      ],
-    );
-  }
-
-  Widget _buildPriorityOption(String label, Color color, bool isDarkMode, Color textColor) {
-    final isSelected = _selectedType == label;
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      width: 100,
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-      decoration: BoxDecoration(
-        color: isSelected
-            ? (isDarkMode ? color.withOpacity(0.3) : color.withOpacity(0.15))
-            : (isDarkMode ? const Color(0xFF252836) : Colors.grey.shade100),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isSelected ? color : Colors.transparent,
-          width: 2,
-        ),
-        boxShadow: isSelected
-            ? [
-          BoxShadow(
-            color: color.withOpacity(0.2),
-            blurRadius: 8,
-            spreadRadius: 1,
-            offset: const Offset(0, 3),
-          )
-        ]
-            : null,
-      ),
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _selectedType = label;
-          });
-        },
-        borderRadius: BorderRadius.circular(14),
-        child: Column(
-          children: [
-            Icon(
-              _getPriorityIcon(label),
-              color: isSelected ? color : (isDarkMode ? Colors.white54 : Colors.black54),
-              size: 24,
-            ),
-            const SizedBox(height: 10),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? color : textColor,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                fontSize: 15,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  IconData _getPriorityIcon(String priority) {
-    switch (priority) {
-      case 'Low':
-        return Icons.arrow_downward_rounded;
-      case 'Medium':
-        return Icons.remove_rounded;
-      case 'High':
-        return Icons.arrow_upward_rounded;
-      default:
-        return Icons.remove_rounded;
-    }
-  }
-
-  Widget _buildTimeSelector(bool isDarkMode, Color textColor, Color primaryColor) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF252836) : Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: _startTime != null
-              ? primaryColor.withOpacity(0.5)
-              : Colors.transparent,
-          width: 1.5,
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: _showTimePicker,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.access_time_rounded,
-                  color: _startTime != null
-                      ? primaryColor
-                      : (isDarkMode ? Colors.white54 : Colors.black54),
-                  size: 22,
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    _startTime != null
-                        ? _startTime!.format(context)
-                        : 'Select a time',
-                    style: TextStyle(
-                      color: _startTime != null
-                          ? textColor
-                          : (isDarkMode ? Colors.white38 : Colors.black38),
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: isDarkMode ? Colors.white38 : Colors.black38,
-                  size: 22,
-                ),
-              ],
             ),
           ),
         ),

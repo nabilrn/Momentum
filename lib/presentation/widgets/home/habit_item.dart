@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:momentum/core/theme/app_theme.dart';
+import 'package:momentum/presentation/utils/color_utils.dart';
 import 'habit_detail_dialog.dart';
 
 class HabitItem extends StatelessWidget {
@@ -10,23 +11,9 @@ class HabitItem extends StatelessWidget {
     required this.habit,
   });
 
-  // Get color based on priority
-  Color _getPriorityColor(String priority) {
-    switch (priority) {
-      case 'low':
-        return const Color(0xFF4CAF50); // Green
-      case 'medium':
-        return const Color(0xFFFFC107); // Yellow/Amber
-      case 'high':
-        return const Color(0xFFF44336); // Red
-      default:
-        return const Color(0xFF4B6EFF); // Default blue
-    }
-  }
-
   // Get icon based on priority
   IconData _getPriorityIcon(String priority) {
-    switch (priority) {
+    switch (priority.toLowerCase()) {
       case 'low':
         return Icons.arrow_downward;
       case 'medium':
@@ -41,8 +28,11 @@ class HabitItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = AppTheme.isDarkMode(context);
-    final priorityColor = _getPriorityColor(habit['priority']);
-    final priorityIcon = _getPriorityIcon(habit['priority']);
+    // Get priority and capitalize first letter to match ColorUtils format
+    final priority = habit['priority'];
+    final priorityFormatted = priority[0].toUpperCase() + priority.substring(1).toLowerCase();
+    final priorityColor = ColorUtils.getPriorityColor(priorityFormatted);
+    final priorityIcon = _getPriorityIcon(priority);
 
     return Container(
       decoration: BoxDecoration(

@@ -104,7 +104,7 @@ class _AccountScreenState extends State<AccountScreen> with SingleTickerProvider
                     ],
                     image: _profileImageUrl != null
                         ? DecorationImage(
-                      image: NetworkImage(_profileImageUrl!),
+                      image: NetworkImage(_profileImageUrl),
                       fit: BoxFit.cover,
                     )
                         : null,
