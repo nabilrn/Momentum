@@ -1,4 +1,4 @@
-// lib/services/supabase_service.dart
+// lib/core/services/supabase_service.dart
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -8,7 +8,7 @@ class SupabaseService {
       await Supabase.initialize(
         url: 'https://eluysqtmjvyfidonotqq.supabase.co',
         anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVsdXlzcXRtanZ5Zmlkb25vdHFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDExNTk4MjEsImV4cCI6MjA1NjczNTgyMX0.eP666ZPZfnMxVyK96ii7DLveJ4DzEuvuM7YWiDtmjEI',
-        authFlowType: AuthFlowType.implicit,
+        // The authFlowType parameter is not needed in the current API version
         debug: kDebugMode,
       );
       debugPrint('Supabase initialized successfully');

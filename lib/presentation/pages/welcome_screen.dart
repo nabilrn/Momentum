@@ -3,6 +3,8 @@ import 'package:momentum/core/theme/app_theme.dart';
 import 'package:momentum/presentation/pages/home_screen.dart';
 import 'package:momentum/presentation/widgets/momentum_logo.dart';
 import 'package:momentum/presentation/widgets/world_map.dart';
+import 'package:momentum/core/services/auth_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -12,6 +14,9 @@ class WelcomeScreen extends StatefulWidget {
 }
 
 class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProviderStateMixin {
+  final AuthService _authService = AuthService();
+  bool _isLoading = false;
+  bool _isInitializing = true;
   late AnimationController _animationController;
   late Animation<double> _fadeInAnimation;
   late Animation<Offset> _slideAnimation;
@@ -39,7 +44,110 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
       ),
     );
 
+    // Check if user is already signed in
+    _checkAuthState();
+  }
+
+  Future<void> _checkAuthState() async {
+    // Check if already authenticated
+    if (_authService.isSignedIn) {
+      debugPrint('✅ User is already signed in');
+      if (mounted) {
+        _navigateToHome();
+      }
+    }
+
+    // Listen for auth state changes
+    _authService.authStateChanges.listen((AuthState state) {
+      if (state.event == AuthChangeEvent.signedIn) {
+        debugPrint('✅ Auth state change: Signed in');
+        if (mounted) {
+          _navigateToHome();
+        }
+      }
+    });
+
+    setState(() => _isInitializing = false);
     _animationController.forward();
+  }
+
+  void _navigateToHome() {
+    Navigator.pushReplacement(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 500),
+      ),
+    );
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    if (_isLoading) return; // Prevent multiple taps
+
+    setState(() => _isLoading = true);
+    debugPrint('🔐 Sign-in process started');
+
+    try {
+      debugPrint('🔐 Calling Google Sign-In method');
+      final response = await _authService.signInWithGoogle();
+
+      if (response == null) {
+        debugPrint('❌ Sign-in canceled or returned null');
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Sign-in was canceled'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } else {
+        debugPrint('✅ Sign-in successful - User: ${response.user?.email}');
+        // The auth state listener will handle navigation
+      }
+    } catch (error) {
+      debugPrint('❌ Sign-in error: $error');
+      String errorMsg = 'Sign-in failed';
+
+      if (error is AuthException) {
+        debugPrint('❌ Auth error code: ${error.statusCode}');
+        debugPrint('❌ Auth error message: ${error.message}');
+
+        if (error.message.contains('Email not confirmed')) {
+          errorMsg = 'Please verify your email address';
+        } else {
+          errorMsg = 'Authentication error: ${error.message}';
+        }
+      } else {
+        // Handle other types of errors
+        final errorString = error.toString();
+        if (errorString.contains('network_error') || errorString.contains('connection')) {
+          errorMsg = 'Network error. Please check your connection.';
+        } else if (errorString.contains('canceled')) {
+          errorMsg = 'Sign-in was canceled';
+        } else {
+          errorMsg = 'Sign-in failed: ${errorString.split('\n')[0]}';
+        }
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        debugPrint('🔐 Sign-in process completed');
+      }
+    }
   }
 
   @override
@@ -53,6 +161,30 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
     final bool isDarkMode = AppTheme.isDarkMode(context);
     final primaryColor = const Color(0xFF4B6EFF);
     final secondaryColor = const Color(0xFF8C61FF);
+
+    if (_isInitializing) {
+      return Scaffold(
+        body: Container(
+          decoration: isDarkMode
+              ? BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                AppTheme.darkWelcomeGradientStart,
+                AppTheme.darkWelcomeGradientEnd,
+              ],
+            ),
+          )
+              : BoxDecoration(
+            color: AppTheme.lightWelcomeBackgroundColor,
+          ),
+          child: const Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       body: Container(
@@ -194,7 +326,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
 
                 const SizedBox(height: 40),
 
-                // Enhanced Google sign-in button
+                // Enhanced Google sign-in button with loading indicator
                 FadeTransition(
                   opacity: _fadeInAnimation,
                   child: Container(
@@ -223,18 +355,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                       color: Colors.transparent,
                       child: InkWell(
                         borderRadius: BorderRadius.circular(28),
-                        onTap: () {
-                          Navigator.pushReplacement(
-                            context,
-                            PageRouteBuilder(
-                              pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(),
-                              transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                                return FadeTransition(opacity: animation, child: child);
-                              },
-                              transitionDuration: const Duration(milliseconds: 500),
-                            ),
-                          );
-                        },
+                        onTap: _isLoading ? null : _handleGoogleSignIn,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 24),
                           child: Row(
@@ -253,7 +374,18 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                                     ),
                                   ],
                                 ),
-                                child: Image.asset(
+                                child: _isLoading
+                                    ? SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      isDarkMode ? Colors.black87 : primaryColor,
+                                    ),
+                                  ),
+                                )
+                                    : Image.asset(
                                   'lib/assets/google_logo.png',
                                   height: 20,
                                   width: 20,
@@ -261,7 +393,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                               ),
                               const SizedBox(width: 16),
                               Text(
-                                'CONTINUE WITH GOOGLE',
+                                _isLoading ? 'SIGNING IN...' : 'CONTINUE WITH GOOGLE',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: isDarkMode ? Colors.black87 : Colors.white,
