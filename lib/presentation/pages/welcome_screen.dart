@@ -1,10 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:momentum/core/theme/app_theme.dart';
 import 'package:momentum/presentation/pages/home_screen.dart';
 import 'package:momentum/presentation/widgets/momentum_logo.dart';
 import 'package:momentum/presentation/widgets/world_map.dart';
-import 'package:momentum/core/services/auth_service.dart';
+import 'package:momentum/presentation/providers/auth_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -13,8 +16,8 @@ class WelcomeScreen extends StatefulWidget {
   State<WelcomeScreen> createState() => _WelcomeScreenState();
 }
 
-class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProviderStateMixin {
-  final AuthService _authService = AuthService();
+class _WelcomeScreenState extends State<WelcomeScreen>
+    with SingleTickerProviderStateMixin {
   bool _isLoading = false;
   bool _isInitializing = true;
   late AnimationController _animationController;
@@ -37,7 +40,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
       ),
     );
 
-    _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.1),
+      end: Offset.zero,
+    ).animate(
       CurvedAnimation(
         parent: _animationController,
         curve: const Interval(0.0, 0.65, curve: Curves.easeOut),
@@ -49,8 +55,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
   }
 
   Future<void> _checkAuthState() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
     // Check if already authenticated
-    if (_authService.isSignedIn) {
+    if (authProvider.authService.isSignedIn) {
       debugPrint('✅ User is already signed in');
       if (mounted) {
         _navigateToHome();
@@ -58,7 +66,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
     }
 
     // Listen for auth state changes
-    _authService.authStateChanges.listen((AuthState state) {
+    authProvider.authService.authStateChanges.listen((AuthState state) {
       if (state.event == AuthChangeEvent.signedIn) {
         debugPrint('✅ Auth state change: Signed in');
         if (mounted) {
@@ -75,7 +83,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
     Navigator.pushReplacement(
       context,
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(),
+        pageBuilder:
+            (context, animation, secondaryAnimation) => const HomeScreen(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },
@@ -91,8 +100,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
     debugPrint('🔐 Sign-in process started');
 
     try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
       debugPrint('🔐 Calling Google Sign-In method');
-      final response = await _authService.signInWithGoogle();
+      final response = await authProvider.signInWithGoogle();
 
       if (response == null) {
         debugPrint('❌ Sign-in canceled or returned null');
@@ -125,7 +135,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
       } else {
         // Handle other types of errors
         final errorString = error.toString();
-        if (errorString.contains('network_error') || errorString.contains('connection')) {
+        if (errorString.contains('network_error') ||
+            errorString.contains('connection')) {
           errorMsg = 'Network error. Please check your connection.';
         } else if (errorString.contains('canceled')) {
           errorMsg = 'Sign-in was canceled';
@@ -158,6 +169,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
     final bool isDarkMode = AppTheme.isDarkMode(context);
     final primaryColor = const Color(0xFF4B6EFF);
     final secondaryColor = const Color(0xFF8C61FF);
@@ -165,48 +177,46 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
     if (_isInitializing) {
       return Scaffold(
         body: Container(
-          decoration: isDarkMode
-              ? BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                AppTheme.darkWelcomeGradientStart,
-                AppTheme.darkWelcomeGradientEnd,
-              ],
-            ),
-          )
-              : BoxDecoration(
-            color: AppTheme.lightWelcomeBackgroundColor,
-          ),
-          child: const Center(
-            child: CircularProgressIndicator(),
-          ),
+          decoration:
+              isDarkMode
+                  ? BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        AppTheme.darkWelcomeGradientStart,
+                        AppTheme.darkWelcomeGradientEnd,
+                      ],
+                    ),
+                  )
+                  : BoxDecoration(color: AppTheme.lightWelcomeBackgroundColor),
+          child: const Center(child: CircularProgressIndicator()),
         ),
       );
     }
 
     return Scaffold(
       body: Container(
-        decoration: isDarkMode
-            ? BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              AppTheme.darkWelcomeGradientStart,
-              AppTheme.darkWelcomeGradientEnd,
-            ],
-          ),
-        )
-            : BoxDecoration(
-          color: AppTheme.lightWelcomeBackgroundColor,
-          image: DecorationImage(
-            image: const AssetImage('lib/assets/light_pattern.png'),
-            opacity: 0.05,
-            repeat: ImageRepeat.repeat,
-          ),
-        ),
+        decoration:
+            isDarkMode
+                ? BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      AppTheme.darkWelcomeGradientStart,
+                      AppTheme.darkWelcomeGradientEnd,
+                    ],
+                  ),
+                )
+                : BoxDecoration(
+                  color: AppTheme.lightWelcomeBackgroundColor,
+                  image: DecorationImage(
+                    image: const AssetImage('lib/assets/light_pattern.png'),
+                    opacity: 0.05,
+                    repeat: ImageRepeat.repeat,
+                  ),
+                ),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -248,7 +258,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                       children: [
                         Text(
                           'Hi, Welcome',
-                          style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                          style: Theme.of(
+                            context,
+                          ).textTheme.displayLarge?.copyWith(
                             color: isDarkMode ? Colors.white : Colors.black,
                             fontWeight: FontWeight.bold,
                             fontSize: 32,
@@ -256,14 +268,17 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                         ),
                         const SizedBox(height: 4),
                         ShaderMask(
-                          shaderCallback: (bounds) => LinearGradient(
-                            colors: [primaryColor, secondaryColor],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ).createShader(bounds),
+                          shaderCallback:
+                              (bounds) => LinearGradient(
+                                colors: [primaryColor, secondaryColor],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ).createShader(bounds),
                           child: Text(
                             'to Momentum!',
-                            style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                            style: Theme.of(
+                              context,
+                            ).textTheme.displayLarge?.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
                               fontSize: 32,
@@ -277,17 +292,16 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: isDarkMode
-                                ? Colors.white.withOpacity(0.1)
-                                : primaryColor.withOpacity(0.1),
+                            color:
+                                isDarkMode
+                                    ? Colors.white.withOpacity(0.1)
+                                    : primaryColor.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
                             'Create habits, build momentum',
                             style: TextStyle(
-                              color: isDarkMode
-                                  ? Colors.white70
-                                  : primaryColor,
+                              color: isDarkMode ? Colors.white70 : primaryColor,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -303,9 +317,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                 Expanded(
                   child: FadeTransition(
                     opacity: _fadeInAnimation,
-                    child: const Center(
-                      child: WorldMap(),
-                    ),
+                    child: const Center(child: WorldMap()),
                   ),
                 ),
 
@@ -326,89 +338,220 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
 
                 const SizedBox(height: 40),
 
-                // Enhanced Google sign-in button with loading indicator
+                // Sign-in button with web vs mobile handling
                 FadeTransition(
                   opacity: _fadeInAnimation,
-                  child: Container(
-                    height: 56,
-                    decoration: BoxDecoration(
-                      gradient: isDarkMode
-                          ? null
-                          : LinearGradient(
-                        colors: [primaryColor, secondaryColor],
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                      ),
-                      color: isDarkMode ? Colors.white : null,
-                      borderRadius: BorderRadius.circular(28),
-                      boxShadow: [
-                        BoxShadow(
-                          color: isDarkMode
-                              ? Colors.black.withOpacity(0.3)
-                              : primaryColor.withOpacity(0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(28),
-                        onTap: _isLoading ? null : _handleGoogleSignIn,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                  boxShadow: isDarkMode ? null : [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.1),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: _isLoading
-                                    ? SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      isDarkMode ? Colors.black87 : primaryColor,
-                                    ),
-                                  ),
-                                )
-                                    : Image.asset(
-                                  'lib/assets/google_logo.png',
-                                  height: 20,
-                                  width: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Text(
-                                _isLoading ? 'SIGNING IN...' : 'CONTINUE WITH GOOGLE',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: isDarkMode ? Colors.black87 : Colors.white,
-                                  letterSpacing: 1,
-                                ),
-                              ),
-                            ],
+                  child:
+                      kIsWeb
+                          ? _buildWebSignInButton(
+                            authProvider,
+                            primaryColor,
+                            secondaryColor,
+                            isDarkMode,
+                          )
+                          : _buildMobileSignInButton(
+                            primaryColor,
+                            secondaryColor,
+                            isDarkMode,
                           ),
-                        ),
-                      ),
-                    ),
-                  ),
                 ),
 
                 const SizedBox(height: 40),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // New method for web sign-in that uses the recommended renderButton approach
+  Widget _buildWebSignInButton(
+    AuthProvider authProvider,
+    Color primaryColor,
+    Color secondaryColor,
+    bool isDarkMode,
+  ) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: authProvider.authService.isSigningIn,
+      builder: (context, isSigningIn, child) {
+        return Container(
+          height: 56,
+          decoration: BoxDecoration(
+            gradient:
+                isDarkMode
+                    ? null
+                    : LinearGradient(
+                      colors: [primaryColor, secondaryColor],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+            color: isDarkMode ? Colors.white : null,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color:
+                    isDarkMode
+                        ? Colors.black.withOpacity(0.3)
+                        : primaryColor.withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(28),
+              onTap:
+                  isSigningIn
+                      ? null
+                      : () {
+                        // For web, use the recommended approach
+                        authProvider.authService
+                            .handleGoogleSignInButtonClick();
+                      },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow:
+                            isDarkMode
+                                ? null
+                                : [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                      ),
+                      child:
+                          isSigningIn
+                              ? SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    isDarkMode ? Colors.black87 : primaryColor,
+                                  ),
+                                ),
+                              )
+                              : Image.asset(
+                                'lib/assets/google_logo.png',
+                                height: 20,
+                                width: 20,
+                              ),
+                    ),
+                    const SizedBox(width: 16),
+                    Text(
+                      isSigningIn ? 'SIGNING IN...' : 'CONTINUE WITH GOOGLE',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: isDarkMode ? Colors.black87 : Colors.white,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // Mobile sign-in button remains the same
+  Widget _buildMobileSignInButton(
+    Color primaryColor,
+    Color secondaryColor,
+    bool isDarkMode,
+  ) {
+    return Container(
+      height: 56,
+      decoration: BoxDecoration(
+        gradient:
+            isDarkMode
+                ? null
+                : LinearGradient(
+                  colors: [primaryColor, secondaryColor],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+        color: isDarkMode ? Colors.white : null,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color:
+                isDarkMode
+                    ? Colors.black.withOpacity(0.3)
+                    : primaryColor.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(28),
+          onTap: _isLoading ? null : _handleGoogleSignIn,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow:
+                        isDarkMode
+                            ? null
+                            : [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                  ),
+                  child:
+                      _isLoading
+                          ? SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                isDarkMode ? Colors.black87 : primaryColor,
+                              ),
+                            ),
+                          )
+                          : Image.asset(
+                            'lib/assets/google_logo.png',
+                            height: 20,
+                            width: 20,
+                          ),
+                ),
+                const SizedBox(width: 16),
+                Text(
+                  _isLoading ? 'SIGNING IN...' : 'CONTINUE WITH GOOGLE',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isDarkMode ? Colors.black87 : Colors.white,
+                    letterSpacing: 1,
+                  ),
+                ),
               ],
             ),
           ),

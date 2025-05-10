@@ -28,5 +28,26 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>CFBundleURLTypes</key>
+        <array>
+            <dict>
+                <key>CFBundleTypeRole</key>
+                <string>Editor</string>
+                <key>CFBundleURLSchemes</key>
+                <array>
+                    <!-- Your reversed client ID -->
+                    <string>com.googleusercontent.apps.691097230046-hrbe3ffc6k3e5er5pkb4k4ht6g1fq9u2</string>
+                    <!-- For Supabase callback -->
+                    <string>io.supabase.flutter</string>
+                </array>
+            </dict>
+        </array>
+
+        <!-- Add network security permissions -->
+        <key>NSAppTransportSecurity</key>
+            <dict>
+                <key>NSAllowsLocalNetworking</key>
+                <true/>
+            </dict>
 </dict>
 </plist>

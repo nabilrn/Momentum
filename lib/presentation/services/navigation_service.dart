@@ -7,6 +7,7 @@ import 'package:momentum/presentation/pages/add_habit_screen.dart';
 import 'package:momentum/presentation/pages/timer_screen.dart';
 import 'package:momentum/presentation/pages/settings_screen.dart';
 import 'package:momentum/presentation/pages/account_screen.dart';
+import 'package:momentum/presentation/pages/welcome_screen.dart';
 
 class NavigationService {
   static void navigateTo(BuildContext context, String routeName) {
@@ -50,5 +51,15 @@ class NavigationService {
     } else {
       navigateTo(context, '/home');
     }
+  }
+  static void goBackToWelcomeScreen(BuildContext context) {
+    Navigator.pushReplacement(
+      context,
+      PageTransition(
+        type: PageTransitionType.fade,
+        duration: const Duration(milliseconds: 300),
+        child: const WelcomeScreen(),
+      ),
+    );
   }
 }
