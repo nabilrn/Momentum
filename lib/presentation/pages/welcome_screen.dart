@@ -178,18 +178,18 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       return Scaffold(
         body: Container(
           decoration:
-              isDarkMode
-                  ? BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        AppTheme.darkWelcomeGradientStart,
-                        AppTheme.darkWelcomeGradientEnd,
-                      ],
-                    ),
-                  )
-                  : BoxDecoration(color: AppTheme.lightWelcomeBackgroundColor),
+          isDarkMode
+              ? BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                AppTheme.darkWelcomeGradientStart,
+                AppTheme.darkWelcomeGradientEnd,
+              ],
+            ),
+          )
+              : BoxDecoration(color: AppTheme.lightWelcomeBackgroundColor),
           child: const Center(child: CircularProgressIndicator()),
         ),
       );
@@ -198,25 +198,25 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     return Scaffold(
       body: Container(
         decoration:
-            isDarkMode
-                ? BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      AppTheme.darkWelcomeGradientStart,
-                      AppTheme.darkWelcomeGradientEnd,
-                    ],
-                  ),
-                )
-                : BoxDecoration(
-                  color: AppTheme.lightWelcomeBackgroundColor,
-                  image: DecorationImage(
-                    image: const AssetImage('lib/assets/light_pattern.png'),
-                    opacity: 0.05,
-                    repeat: ImageRepeat.repeat,
-                  ),
-                ),
+        isDarkMode
+            ? BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              AppTheme.darkWelcomeGradientStart,
+              AppTheme.darkWelcomeGradientEnd,
+            ],
+          ),
+        )
+            : BoxDecoration(
+          color: AppTheme.lightWelcomeBackgroundColor,
+          image: DecorationImage(
+            image: const AssetImage('lib/assets/light_pattern.png'),
+            opacity: 0.05,
+            repeat: ImageRepeat.repeat,
+          ),
+        ),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -270,10 +270,10 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         ShaderMask(
                           shaderCallback:
                               (bounds) => LinearGradient(
-                                colors: [primaryColor, secondaryColor],
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                              ).createShader(bounds),
+                            colors: [primaryColor, secondaryColor],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ).createShader(bounds),
                           child: Text(
                             'to Momentum!',
                             style: Theme.of(
@@ -293,9 +293,9 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                           ),
                           decoration: BoxDecoration(
                             color:
-                                isDarkMode
-                                    ? Colors.white.withOpacity(0.1)
-                                    : primaryColor.withOpacity(0.1),
+                            isDarkMode
+                                ? Colors.white.withOpacity(0.1)
+                                : primaryColor.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
@@ -342,18 +342,18 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                 FadeTransition(
                   opacity: _fadeInAnimation,
                   child:
-                      kIsWeb
-                          ? _buildWebSignInButton(
-                            authProvider,
-                            primaryColor,
-                            secondaryColor,
-                            isDarkMode,
-                          )
-                          : _buildMobileSignInButton(
-                            primaryColor,
-                            secondaryColor,
-                            isDarkMode,
-                          ),
+                  kIsWeb
+                      ? _buildWebSignInButton(
+                    authProvider,
+                    primaryColor,
+                    secondaryColor,
+                    isDarkMode,
+                  )
+                      : _buildMobileSignInButton(
+                    primaryColor,
+                    secondaryColor,
+                    isDarkMode,
+                  ),
                 ),
 
                 const SizedBox(height: 40),
@@ -367,11 +367,11 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 
   // New method for web sign-in that uses the recommended renderButton approach
   Widget _buildWebSignInButton(
-    AuthProvider authProvider,
-    Color primaryColor,
-    Color secondaryColor,
-    bool isDarkMode,
-  ) {
+      AuthProvider authProvider,
+      Color primaryColor,
+      Color secondaryColor,
+      bool isDarkMode,
+      ) {
     return ValueListenableBuilder<bool>(
       valueListenable: authProvider.authService.isSigningIn,
       builder: (context, isSigningIn, child) {
@@ -379,21 +379,21 @@ class _WelcomeScreenState extends State<WelcomeScreen>
           height: 56,
           decoration: BoxDecoration(
             gradient:
-                isDarkMode
-                    ? null
-                    : LinearGradient(
-                      colors: [primaryColor, secondaryColor],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
+            isDarkMode
+                ? null
+                : LinearGradient(
+              colors: [primaryColor, secondaryColor],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
             color: isDarkMode ? Colors.white : null,
             borderRadius: BorderRadius.circular(28),
             boxShadow: [
               BoxShadow(
                 color:
-                    isDarkMode
-                        ? Colors.black.withOpacity(0.3)
-                        : primaryColor.withOpacity(0.3),
+                isDarkMode
+                    ? Colors.black.withOpacity(0.3)
+                    : primaryColor.withOpacity(0.3),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -404,13 +404,13 @@ class _WelcomeScreenState extends State<WelcomeScreen>
             child: InkWell(
               borderRadius: BorderRadius.circular(28),
               onTap:
-                  isSigningIn
-                      ? null
-                      : () {
-                        // For web, use the recommended approach
-                        authProvider.authService
-                            .handleGoogleSignInButtonClick();
-                      },
+              isSigningIn
+                  ? null
+                  : () {
+                // For web, use the recommended approach
+                authProvider.authService
+                    .handleGoogleSignInButtonClick();
+              },
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Row(
@@ -422,33 +422,33 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         color: Colors.white,
                         shape: BoxShape.circle,
                         boxShadow:
-                            isDarkMode
-                                ? null
-                                : [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
+                        isDarkMode
+                            ? null
+                            : [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child:
-                          isSigningIn
-                              ? SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    isDarkMode ? Colors.black87 : primaryColor,
-                                  ),
-                                ),
-                              )
-                              : Image.asset(
-                                'lib/assets/google_logo.png',
-                                height: 20,
-                                width: 20,
-                              ),
+                      isSigningIn
+                          ? SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            isDarkMode ? Colors.black87 : primaryColor,
+                          ),
+                        ),
+                      )
+                          : Image.asset(
+                        'lib/assets/google_logo.png',
+                        height: 20,
+                        width: 20,
+                      ),
                     ),
                     const SizedBox(width: 16),
                     Text(
@@ -471,29 +471,29 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 
   // Mobile sign-in button remains the same
   Widget _buildMobileSignInButton(
-    Color primaryColor,
-    Color secondaryColor,
-    bool isDarkMode,
-  ) {
+      Color primaryColor,
+      Color secondaryColor,
+      bool isDarkMode,
+      ) {
     return Container(
       height: 56,
       decoration: BoxDecoration(
         gradient:
-            isDarkMode
-                ? null
-                : LinearGradient(
-                  colors: [primaryColor, secondaryColor],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
+        isDarkMode
+            ? null
+            : LinearGradient(
+          colors: [primaryColor, secondaryColor],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
         color: isDarkMode ? Colors.white : null,
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
             color:
-                isDarkMode
-                    ? Colors.black.withOpacity(0.3)
-                    : primaryColor.withOpacity(0.3),
+            isDarkMode
+                ? Colors.black.withOpacity(0.3)
+                : primaryColor.withOpacity(0.3),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -515,33 +515,33 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                     color: Colors.white,
                     shape: BoxShape.circle,
                     boxShadow:
-                        isDarkMode
-                            ? null
-                            : [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
+                    isDarkMode
+                        ? null
+                        : [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child:
-                      _isLoading
-                          ? SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                isDarkMode ? Colors.black87 : primaryColor,
-                              ),
-                            ),
-                          )
-                          : Image.asset(
-                            'lib/assets/google_logo.png',
-                            height: 20,
-                            width: 20,
-                          ),
+                  _isLoading
+                      ? SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        isDarkMode ? Colors.black87 : primaryColor,
+                      ),
+                    ),
+                  )
+                      : Image.asset(
+                    'lib/assets/google_logo.png',
+                    height: 20,
+                    width: 20,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Text(

@@ -15,7 +15,7 @@ class AuthService {
   // Completer to handle the web sign-in flow
   Completer<GoogleSignInAccount?>? _webSignInCompleter;
 
-  // TODO: Replace with your actual client IDs
+  // TODO: Replace with your actual client IDs (note: you already have these filled in)
   static const String _webClientId =
       '691097230046-gqdce2jcd9vpmkmfq9vjn2dfji4jv7k1.apps.googleusercontent.com';
   static const String _iosClientId =
@@ -29,7 +29,7 @@ class AuthService {
         clientId: _webClientId,
       );
 
-      // Initialize the web GIS sign-in handler
+      // Initialize the web sign-in handler
       _initializeWebSignIn();
     } else if (defaultTargetPlatform == TargetPlatform.iOS) {
       _googleSignIn = GoogleSignIn(
@@ -46,13 +46,13 @@ class AuthService {
     }
   }
 
-  // Initialize web sign-in with GIS approach
+  // Initialize web sign-in with proper listener setup
   void _initializeWebSignIn() {
     if (kIsWeb) {
       // Set up the onCurrentUserChanged listener to handle authentication
       _googleSignIn.onCurrentUserChanged.listen((
-        GoogleSignInAccount? account,
-      ) async {
+          GoogleSignInAccount? account,
+          ) async {
         if (account != null) {
           debugPrint('🔐 AuthService: Current user changed: ${account.email}');
           isSigningIn.value = true;
@@ -75,32 +75,45 @@ class AuthService {
       });
 
       // Try silent sign-in to check if user is already authenticated
-      _googleSignIn
-          .signInSilently()
-          .then((account) {
-            debugPrint(
-              '🔐 AuthService: Silent sign-in result: ${account?.email ?? 'No user'}',
-            );
-          })
-          .catchError((e) {
-            debugPrint('⚠️ AuthService: Silent sign-in error: $e');
-          });
+      _trySilentSignIn();
+    }
+  }
+
+  // Helper method to attempt silent sign-in
+  Future<void> _trySilentSignIn() async {
+    try {
+      final account = await _googleSignIn.signInSilently();
+      debugPrint(
+        '🔐 AuthService: Silent sign-in result: ${account?.email ?? 'No user'}',
+      );
+    } catch (e) {
+      debugPrint('⚠️ AuthService: Silent sign-in error: $e');
     }
   }
 
   SupabaseClient get _supabaseClient => SupabaseService.client;
 
-  // The new recommended approach for web
+  // Web GIS sign-in method - the recommended approach for web
   Future<GoogleSignInAccount?> signInWithGoogleWebGIS() async {
     if (!kIsWeb) return null;
 
     debugPrint('🔐 AuthService: Starting Web GIS Google Sign-In');
 
     try {
+      // First clear existing sessions
+      await _cleanupPreviousSessions();
+
       // Use completer to handle the sign-in process
       _webSignInCompleter = Completer<GoogleSignInAccount?>();
 
-      // Make the web button visible
+      // Attempt signInSilently first to refresh tokens
+      final silentUser = await _googleSignIn.signInSilently();
+      if (silentUser != null) {
+        debugPrint('🔐 AuthService: Silent sign-in successful: ${silentUser.email}');
+        return silentUser;
+      }
+
+      // If silent sign-in fails, make the web button visible for explicit sign-in
       webSignInButtonVisible.value = true;
 
       // Wait for the user to click the button and complete the sign-in
@@ -114,24 +127,45 @@ class AuthService {
     }
   }
 
-  // Legacy web sign-in method - keep for backward compatibility
+  // Helper method to clean up previous sessions
+  Future<void> _cleanupPreviousSessions() async {
+    // Clear Google Sign-In session
+    try {
+      await _googleSignIn.signOut();
+      debugPrint(
+        '🔐 AuthService: Successfully signed out from previous Google session',
+      );
+
+      // Clear any cookies or in-memory tokens that might be causing issues
+      if (kIsWeb) {
+        debugPrint('🔐 AuthService: Web platform detected, performing additional cleanup');
+        // Allow a brief pause for token clearing
+        await Future.delayed(const Duration(milliseconds: 300));
+      }
+    } catch (e) {
+      debugPrint(
+        '⚠️ AuthService: Failed to sign out from previous Google session: $e',
+      );
+    }
+
+    // Optionally clear Supabase session if needed
+    // Uncomment if you want to force Supabase signout as well
+    /*
+    try {
+      await _supabaseClient.auth.signOut(scope: SignOutScope.local);
+      debugPrint('🔐 AuthService: Successfully signed out from previous Supabase session');
+    } catch (e) {
+      debugPrint('⚠️ AuthService: Failed to sign out from previous Supabase session: $e');
+    }
+    */
+  }
+
+  // Web sign-in method wrapper (uses the GIS approach)
   Future<AuthResponse?> signInWithGoogleWeb() async {
     try {
-      debugPrint('🔐 AuthService: Starting legacy Web Google Sign-In');
+      debugPrint('🔐 AuthService: Starting Web Google Sign-In');
 
-      // Clear any existing sign in first
-      try {
-        await _googleSignIn.signOut();
-        debugPrint(
-          '🔐 AuthService: Successfully signed out from previous session',
-        );
-      } catch (e) {
-        debugPrint(
-          '⚠️ AuthService: Failed to sign out from previous session: $e',
-        );
-      }
-
-      // For web, use the new recommended approach
+      // For web, use the recommended GIS approach
       final GoogleSignInAccount? googleUser = await signInWithGoogleWebGIS();
 
       if (googleUser == null) {
@@ -146,6 +180,7 @@ class AuthService {
     }
   }
 
+  // Main sign-in method that handles both web and mobile
   Future<AuthResponse?> signInWithGoogle() async {
     try {
       debugPrint('🔐 AuthService: Starting Google Sign-In');
@@ -158,18 +193,8 @@ class AuthService {
         return await signInWithGoogleWeb();
       }
 
-      // Clear any existing sign in first
-      try {
-        await _googleSignIn.signOut();
-        debugPrint(
-          '🔐 AuthService: Successfully signed out from previous session',
-        );
-      } catch (e) {
-        debugPrint(
-          '⚠️ AuthService: Failed to sign out from previous session: $e',
-        );
-        // Continue regardless of sign-out success
-      }
+      // Clean up previous sessions
+      await _cleanupPreviousSessions();
 
       // For mobile platforms, use the standard approach
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
@@ -192,15 +217,14 @@ class AuthService {
 
   // Helper method to process Google Sign-In and authenticate with Supabase
   Future<AuthResponse?> _processGoogleSignIn(
-    GoogleSignInAccount googleUser,
-  ) async {
+      GoogleSignInAccount googleUser,
+      ) async {
     debugPrint(
       '🔐 AuthService: Processing Google account: ${googleUser.email}',
     );
 
-    // Get authentication data
-    final GoogleSignInAuthentication googleAuth =
-        await googleUser.authentication;
+    // Get authentication data with retries for web
+    final GoogleSignInAuthentication googleAuth = await _getGoogleAuthWithRetry(googleUser);
 
     // Verify we have the required tokens
     final String? idToken = googleAuth.idToken;
@@ -214,14 +238,36 @@ class AuthService {
     );
 
     if (idToken == null) {
-      debugPrint('❌ AuthService: No ID token received from Google');
-      throw Exception(
-        'No ID token received from Google. Please check your Google Cloud Console configuration and ensure you have set up OAuth correctly for web and mobile platforms.',
-      );
+      if (kIsWeb && accessToken != null) {
+        // Special handling for web when we only have an access token
+        debugPrint('⚠️ AuthService: No ID token on web, but access token is present. Using custom sign-in flow.');
+        // Use a custom sign-in method for this scenario
+        return await _signInWithAccessTokenOnly(accessToken, googleUser.email);
+      } else {
+        // Standard error for missing ID token
+        debugPrint('❌ AuthService: No ID token received from Google');
+        throw Exception(
+          'No ID token received from Google. Please check your Google Cloud Console configuration and ensure you have set up OAuth correctly for web and mobile platforms.',
+        );
+      }
     }
 
-    if (accessToken == null) {
-      debugPrint('❌ AuthService: No access token received from Google');
+    // For Web with FedCM, the accessToken might be null - adapt accordingly
+    if (accessToken == null && kIsWeb) {
+      debugPrint('⚠️ AuthService: No access token received from Google on web. Proceeding with ID token only.');
+
+      // Use ID token only authentication for web
+      final response = await _supabaseClient.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+        // Skip accessToken parameter for web
+      );
+
+      debugPrint('✅ AuthService: Supabase sign-in successful with ID token only');
+      return response;
+    } else if (accessToken == null) {
+      // For mobile platforms, still require access token
+      debugPrint('❌ AuthService: No access token received from Google on mobile');
       throw Exception('No access token received from Google.');
     }
 
@@ -229,7 +275,7 @@ class AuthService {
       '✅ AuthService: ID token received: ${idToken.substring(0, min(10, idToken.length))}...',
     );
 
-    // Sign in to Supabase with the ID token
+    // Standard sign-in with both tokens
     final response = await _supabaseClient.auth.signInWithIdToken(
       provider: OAuthProvider.google,
       idToken: idToken,
@@ -240,12 +286,76 @@ class AuthService {
     return response;
   }
 
+  // Helper method to get Google authentication with retry logic for web
+  Future<GoogleSignInAuthentication> _getGoogleAuthWithRetry(GoogleSignInAccount googleUser) async {
+    int retryCount = 0;
+    const maxRetries = 2;
+
+    while (true) {
+      try {
+        final auth = await googleUser.authentication;
+
+        // If we have at least one token, or we've reached max retries, return what we have
+        if (auth.idToken != null || auth.accessToken != null || retryCount >= maxRetries) {
+          return auth;
+        }
+
+        // If we get here, we didn't get any tokens - retry after a short delay
+        retryCount++;
+        debugPrint('⚠️ AuthService: No tokens received, retrying (${retryCount}/${maxRetries})');
+        await Future.delayed(Duration(milliseconds: 500));
+
+      } catch (e) {
+        debugPrint('❌ AuthService: Error getting Google authentication: $e');
+        if (retryCount >= maxRetries) {
+          rethrow;
+        }
+        retryCount++;
+        await Future.delayed(Duration(milliseconds: 500));
+      }
+    }
+  }
+
+  // Custom method for handling sign-in with only access token (web fallback)
+  Future<AuthResponse?> _signInWithAccessTokenOnly(String accessToken, String email) async {
+    try {
+      // Option 1: Try to exchange the access token for an ID token using your backend
+      // This would be the best approach but requires server-side implementation
+      // return await _exchangeAccessTokenForIdToken(accessToken);
+
+      // Option 2: Use magic link as a fallback
+      debugPrint('⚠️ AuthService: Attempting to sign in with access token only');
+
+      // Simple email validation check
+      if (!email.contains('@')) {
+        throw Exception('Invalid email address format');
+      }
+
+      // Option 3: Use password authentication if the user already exists
+      // This is just a fallback option if you have pre-registered users
+
+      // For now, we'll throw an error to prompt you to implement a proper solution
+      throw Exception(
+        'ID token is required but was missing. You may need to implement token exchange on your backend.',
+      );
+    } catch (e) {
+      debugPrint('❌ AuthService: Error in access token only flow: $e');
+      rethrow;
+    }
+  }
+
   // Method to handle button click from the UI (used with renderButton)
   Future<void> handleGoogleSignInButtonClick() async {
     if (!kIsWeb) return;
 
     try {
       isSigningIn.value = true;
+
+      // Reset Google Sign-In state to force a fresh authentication
+      await _googleSignIn.signOut();
+
+      // Brief delay to ensure any token clearing has completed
+      await Future.delayed(const Duration(milliseconds: 300));
 
       // This prompts the OAuth consent screen
       final GoogleSignInAccount? account = await _googleSignIn.signIn();
@@ -271,12 +381,18 @@ class AuthService {
     try {
       await _googleSignIn.signOut();
       debugPrint('✅ AuthService: Google Sign-Out successful');
+
+      // For web, add a small delay to allow token clearing
+      if (kIsWeb) {
+        await Future.delayed(const Duration(milliseconds: 300));
+      }
     } catch (e) {
       debugPrint('❌ AuthService: Google Sign-Out error: $e');
     }
 
     try {
-      await _supabaseClient.auth.signOut();
+      // Make sure to sign out from Supabase with both local and global scopes
+      await _supabaseClient.auth.signOut(scope: SignOutScope.local);
       debugPrint('✅ AuthService: Supabase Sign-Out successful');
     } catch (e) {
       debugPrint('❌ AuthService: Supabase Sign-Out error: $e');

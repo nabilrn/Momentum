@@ -46,7 +46,7 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>CFBundleURLTypes</key>
-    <array>
+     <array>
     	<dict>
     		<key>CFBundleTypeRole</key>
     		<string>Editor</string>
