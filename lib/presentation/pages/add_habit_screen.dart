@@ -5,6 +5,10 @@ import '../widgets/add_habit/form_label.dart';
 import '../widgets/add_habit/custom_text_field.dart';
 import '../widgets/add_habit/priority_selector.dart';
 import '../widgets/add_habit/time_selector.dart';
+import 'package:momentum/presentation/controllers/habit_controller.dart';
+import 'package:provider/provider.dart';
+
+
 
 class AddHabitScreen extends StatefulWidget {
   const AddHabitScreen({super.key});
@@ -87,26 +91,53 @@ class _AddHabitScreenState extends State<AddHabitScreen> with SingleTickerProvid
 
   void _saveHabit() {
     if (_formKey.currentState!.validate()) {
-      // Create visual feedback with a temporary overlay
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Habit saved successfully!'),
-          backgroundColor: const Color(0xFF4B6EFF),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
-        ),
+      final controller = Provider.of<HabitController>(context, listen: false);
+
+      // Show loading indicator if needed
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
-      // Simulate saving the habit
-      print('Habit Name: ${_habitNameController.text}');
-      print('Focus Time: ${_focusTimeController.text}');
-      print('Type: $_selectedType');
-      print('Start Time: ${_startTime?.format(context)}');
+      // Create the habit using the controller
+      controller.createHabit(
+        name: _habitNameController.text,
+        focusTimeMinutes: int.parse(_focusTimeController.text),
+        priority: _selectedType.toLowerCase(),
+        startTime: _startTime,
+      ).then((habit) {
+        // Close loading dialog
+        Navigator.pop(context);
 
-      // Navigate back with a short delay for animation
-      Future.delayed(const Duration(milliseconds: 300), () {
-        NavigationService.goBack(context);
+        if (habit != null) {
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Habit saved successfully!'),
+              backgroundColor: const Color(0xFF4B6EFF),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
+            ),
+          );
+
+          // Navigate back with a short delay for animation
+          Future.delayed(const Duration(milliseconds: 300), () {
+            NavigationService.goBack(context);
+          });
+        } else {
+          // Show error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${controller.error ?? "Failed to save habit"}'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
+            ),
+          );
+        }
       });
     }
   }

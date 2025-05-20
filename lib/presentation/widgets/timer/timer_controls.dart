@@ -8,6 +8,7 @@ class TimerControls extends StatelessWidget {
   final Color primaryColor;
   final VoidCallback onReset;
   final VoidCallback onToggle;
+  final VoidCallback onNavigateToHome; // Add a callback for navigation
 
   const TimerControls({
     super.key,
@@ -17,6 +18,7 @@ class TimerControls extends StatelessWidget {
     required this.primaryColor,
     required this.onReset,
     required this.onToggle,
+    required this.onNavigateToHome, // Pass the navigation callback
   });
 
   @override
@@ -79,13 +81,13 @@ class TimerControls extends StatelessWidget {
 
             const SizedBox(width: 16),
 
-            // Start/Pause button
+            // Start/Pause/Done button
             TimerActionButton(
               label: isRunning ? 'Pause' : (isCompleted ? 'Done' : 'Start'),
               icon: isRunning ? Icons.pause : (isCompleted ? Icons.check : Icons.play_arrow),
               color: primaryColor,
               isDarkMode: isDarkMode,
-              onPressed: onToggle,
+              onPressed: isCompleted ? onNavigateToHome : onToggle, // Navigate if completed
             ),
           ],
         ),

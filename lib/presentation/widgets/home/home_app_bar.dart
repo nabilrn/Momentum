@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:momentum/core/theme/app_theme.dart';
 import 'package:momentum/presentation/services/navigation_service.dart';
 import 'package:momentum/presentation/widgets/momentum_logo.dart';
-import 'package:momentum/presentation/widgets/home/filter_bottom_sheet.dart';
-
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   const HomeAppBar({super.key});
 
@@ -21,21 +19,6 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       actions: [
         // Filter Icon
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          decoration: BoxDecoration(
-            color: isDarkMode ? Colors.white.withOpacity(0.05) : Colors.grey.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: IconButton(
-            icon: Icon(
-              Icons.filter_list,
-              color: isDarkMode ? Colors.white : Colors.black,
-              size: 22,
-            ),
-            onPressed: () => showFilterBottomSheet(context),
-          ),
-        ),
 
         // Menu Icon
         Container(

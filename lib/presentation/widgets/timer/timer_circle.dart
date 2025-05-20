@@ -39,7 +39,7 @@ class TimerCircle extends StatelessWidget {
     // Determine the color based on progress
     Color progressColor = Color.lerp(
       const Color(0xFFF44336), // Red when low
-      const Color(0xFF4CAF50), // Green when high
+      const Color(0xFF4B6EFF), // Green when high
       progress,
     ) ?? primaryColor;
 

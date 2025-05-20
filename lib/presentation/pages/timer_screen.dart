@@ -1,13 +1,21 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
+import 'package:momentum/data/models/habit_model.dart';
+import '../controllers/habit_controller.dart';
 import '../widgets/timer/timer_app_bar.dart';
 import '../widgets/timer/timer_circle.dart';
 import '../widgets/timer/timer_controls.dart';
+import '../utils/color_util_random.dart'; // Added ColorUtils import
+import 'package:momentum/core/services/habit_completion_service.dart';
+import 'package:momentum/data/datasources/supabase_datasource.dart';
 
 class TimerScreen extends StatefulWidget {
-  const TimerScreen({super.key});
+  final String? habitId;
+
+  const TimerScreen({super.key, this.habitId});
 
   @override
   State<TimerScreen> createState() => _TimerScreenState();
@@ -17,9 +25,10 @@ class _TimerScreenState extends State<TimerScreen> with TickerProviderStateMixin
   // Timer state
   bool _isRunning = false;
   bool _isCompleted = false;
-  final int _totalSeconds = 15 * 60; // 15 minutes in seconds
-  int _remainingSeconds = 15 * 60;
+  late int _totalSeconds;
+  late int _remainingSeconds;
   Timer? _timer;
+  HabitModel? _habit;
 
   // Animation controllers
   late AnimationController _pulseController;
@@ -30,6 +39,10 @@ class _TimerScreenState extends State<TimerScreen> with TickerProviderStateMixin
   @override
   void initState() {
     super.initState();
+    // Default values in case habit is not found
+    _totalSeconds = 15 * 60;
+    _remainingSeconds = _totalSeconds;
+
     // Pulse animation for the timer circle
     _pulseController = AnimationController(
       duration: const Duration(seconds: 2),
@@ -46,6 +59,27 @@ class _TimerScreenState extends State<TimerScreen> with TickerProviderStateMixin
       parent: _completionController,
       curve: Curves.easeOutBack,
     );
+
+    // Load habit data in the next frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadHabitData();
+    });
+  }
+
+  void _loadHabitData() {
+    if (widget.habitId != null) {
+      final habitController = Provider.of<HabitController>(context, listen: false);
+      final habit = habitController.getHabitById(widget.habitId!);
+
+      if (habit != null) {
+        setState(() {
+          _habit = habit;
+          // Convert minutes to seconds for the timer
+          _totalSeconds = habit.focusTimeMinutes * 60;
+          _remainingSeconds = _totalSeconds;
+        });
+      }
+    }
   }
 
   @override
@@ -117,15 +151,34 @@ class _TimerScreenState extends State<TimerScreen> with TickerProviderStateMixin
       _isCompleted = true;
     });
 
+    // Catat habit completion jika habit tersedia
+    if (_habit != null) {
+      final habitCompletionService = HabitCompletionService(SupabaseDataSource());
+      habitCompletionService.recordCompletion(_habit!.id!);
+    }
+
     _completionController.forward();
   }
 
   @override
   Widget build(BuildContext context) {
     final bool isDarkMode = AppTheme.isDarkMode(context);
-    final primaryColor = const Color(0xFF4B6EFF);
-    final accentColor = const Color(0xFF6C4BFF);
+
+    // Get color based on habit priority or use default
+    final primaryColor = _habit != null
+        ? ColorUtils.getPriorityColor(_habit!.priority)
+        : const Color(0xFF4B6EFF);
+
+    // Create a slightly different accent color based on the primary
+    final accentColor = _habit != null
+        ? ColorUtils.getPriorityColor(_habit!.priority).withOpacity(0.8)
+        : const Color(0xFF6C4BFF);
+
     final backgroundColor = isDarkMode ? const Color(0xFF1E1E2C) : Colors.white;
+
+    // Get formatted time for subtitle
+    final int minutes = (_totalSeconds / 60).floor();
+    final String timeText = "$minutes minutes of focused activity";
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -134,8 +187,8 @@ class _TimerScreenState extends State<TimerScreen> with TickerProviderStateMixin
           children: [
             // App bar with back button and habit title
             TimerAppBar(
-              title: "Morning Meditation",
-              subtitle: "15 minutes of focused activity",
+              title: _habit?.name ?? "Focus Timer",
+              subtitle: timeText,
               isDarkMode: isDarkMode,
             ),
 
@@ -166,6 +219,9 @@ class _TimerScreenState extends State<TimerScreen> with TickerProviderStateMixin
                 primaryColor: primaryColor,
                 onReset: _resetTimer,
                 onToggle: _toggleTimer,
+                onNavigateToHome: () {
+                  Navigator.of(context).pushReplacementNamed('/home'); // Navigate to home
+                },
               ),
             ),
           ],

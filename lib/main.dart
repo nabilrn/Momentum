@@ -10,11 +10,11 @@ import 'package:page_transition/page_transition.dart';
 import 'package:momentum/presentation/pages/timer_screen.dart';
 import 'package:momentum/presentation/pages/settings_screen.dart';
 import 'package:momentum/presentation/pages/account_screen.dart';
-import 'package:momentum/core/services/auth_service.dart';
 import 'package:momentum/core/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:momentum/presentation/providers/auth_provider.dart';
+import 'package:momentum/presentation/controllers/habit_controller.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,6 +38,7 @@ class _MomentumAppState extends State<MomentumApp> {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => HabitController()),
         // Add other providers here as needed
       ],
       child: Consumer<AuthProvider>(

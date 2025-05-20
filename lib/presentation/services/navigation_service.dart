@@ -10,7 +10,7 @@ import 'package:momentum/presentation/pages/account_screen.dart';
 import 'package:momentum/presentation/pages/welcome_screen.dart';
 
 class NavigationService {
-  static void navigateTo(BuildContext context, String routeName) {
+  static void navigateTo(BuildContext context, String routeName, {Map<String, dynamic>? arguments}) {
     Widget page;
 
     switch (routeName) {
@@ -27,11 +27,16 @@ class NavigationService {
         page = const AddHabitScreen();
         break;
       case '/timer':
-        page = const TimerScreen();
+      // Extract habit ID from arguments if available
+        final String? habitId = arguments?['habitId'];
+        page = TimerScreen(habitId: habitId);
+        break;
       case '/settings':
         page = const SettingsScreen();
+        break;
       case '/account':
         page = const AccountScreen();
+        break;
       default:
         page = const HomeScreen();
     }
@@ -45,6 +50,7 @@ class NavigationService {
       ),
     );
   }
+
   static void goBack(BuildContext context) {
     if (Navigator.canPop(context)) {
       Navigator.pop(context);
@@ -52,6 +58,7 @@ class NavigationService {
       navigateTo(context, '/home');
     }
   }
+
   static void goBackToWelcomeScreen(BuildContext context) {
     Navigator.pushReplacement(
       context,

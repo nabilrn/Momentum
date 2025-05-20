@@ -7,7 +7,6 @@ import 'package:momentum/presentation/widgets/world_map.dart';
 import 'package:momentum/presentation/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});

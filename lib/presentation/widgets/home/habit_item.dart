@@ -12,8 +12,8 @@ class HabitItem extends StatelessWidget {
   });
 
   // Get icon based on priority
-  IconData _getPriorityIcon(String priority) {
-    switch (priority.toLowerCase()) {
+  IconData _getPriorityIcon(String? priority) {
+    switch (priority?.toLowerCase() ?? 'medium') {
       case 'low':
         return Icons.arrow_downward;
       case 'medium':
@@ -29,7 +29,7 @@ class HabitItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDarkMode = AppTheme.isDarkMode(context);
     // Get priority and capitalize first letter to match ColorUtils format
-    final priority = habit['priority'];
+    final priority = habit['priority'] ?? 'medium';
     final priorityFormatted = priority[0].toUpperCase() + priority.substring(1).toLowerCase();
     final priorityColor = ColorUtils.getPriorityColor(priorityFormatted);
     final priorityIcon = _getPriorityIcon(priority);
@@ -79,7 +79,7 @@ class HabitItem extends StatelessWidget {
                         children: [
                           Expanded(
                             child: Text(
-                              habit['name'],
+                              habit['name'] ?? 'Unnamed Habit',
                               style: TextStyle(
                                 color: isDarkMode ? Colors.white : Colors.black,
                                 fontSize: 16,
@@ -106,7 +106,7 @@ class HabitItem extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  habit['priority'].toUpperCase(),
+                                  (habit['priority'] ?? 'medium').toUpperCase(),
                                   style: TextStyle(
                                     color: priorityColor,
                                     fontSize: 10,
@@ -120,7 +120,7 @@ class HabitItem extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        habit['time'],
+                        'Started at ${habit['startTime'] ?? 'Not set'}',
                         style: TextStyle(
                           color: isDarkMode ? Colors.white70 : Colors.black54,
                           fontSize: 14,
@@ -130,19 +130,17 @@ class HabitItem extends StatelessWidget {
                   ),
                 ),
 
-                // Streak count
+                // Focus time indicator
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: isDarkMode
-                        ? Colors.white.withOpacity(0.05)
-                        : Colors.grey.withOpacity(0.1),
+                    color: priorityColor.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Text(
-                    habit['streak'],
+                    '${habit['focusTimeMinutes'] ?? 0}',
                     style: TextStyle(
-                      color: isDarkMode ? Colors.white : Colors.black,
+                      color: priorityColor,
                       fontWeight: FontWeight.bold,
                     ),
                   ),

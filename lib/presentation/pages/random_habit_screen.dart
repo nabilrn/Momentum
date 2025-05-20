@@ -2,11 +2,15 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:momentum/presentation/widgets/bottom_navigation.dart';
 import 'package:momentum/core/theme/app_theme.dart';
+import 'package:provider/provider.dart';
 import '../widgets/random/progress_bar.dart';
 import '../widgets/random/habit_card.dart';
 import '../widgets/random/timer_circle.dart';
 import '../widgets/random/action_button.dart';
 import '../services/navigation_service.dart';
+import '../controllers/habit_controller.dart';
+import 'package:momentum/data/models/habit_model.dart';
+import 'package:momentum/presentation/utils/color_util_random.dart';
 
 class RandomHabitScreen extends StatefulWidget {
   const RandomHabitScreen({super.key});
@@ -19,23 +23,17 @@ class _RandomHabitScreenState extends State<RandomHabitScreen> with SingleTicker
   int _currentIndex = 1;
   int _currentHabitIndex = 0;
   bool _isCountdownActive = false;
+  bool _isLoading = true;
   late AnimationController _animationController;
   late Animation<double> _animation;
+  List<HabitModel> _randomHabits = [];
 
-  // Updated habits with category and removed icon dependency
-  final List<Map<String, dynamic>> _randomHabits = [
-    {'name': 'Morning Jog', 'duration': 15, 'priority': 'High', 'category': 'Fitness'},
-    {'name': 'Meditation', 'duration': 10, 'priority': 'Low', 'category': 'Wellness'},
-    {'name': 'Reading', 'duration': 20, 'priority': 'Medium', 'category': 'Knowledge'},
-    {'name': 'Stretching', 'duration': 5, 'priority': 'Low', 'category': 'Fitness'},
-    {'name': 'Journaling', 'duration': 15, 'priority': 'Medium', 'category': 'Mindfulness'},
-  ];
+  // Maximum number of habits to show
+  final int _maxHabitsToShow = 3;
 
   @override
   void initState() {
     super.initState();
-    _selectRandomHabit();
-
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 1),
@@ -46,18 +44,63 @@ class _RandomHabitScreenState extends State<RandomHabitScreen> with SingleTicker
         setState(() {});
       });
 
-    _animationController.forward();
-  }
-
-  void _selectRandomHabit() {
-    final random = Random();
-    setState(() {
-      _currentHabitIndex = random.nextInt(_randomHabits.length);
-      _isCountdownActive = false;
+    // Load habits when screen initializes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadHabits();
     });
   }
 
+  Future<void> _loadHabits() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final habitController = Provider.of<HabitController>(context, listen: false);
+    await habitController.loadHabits();
+
+    setState(() {
+      // Get all habits first
+      List<HabitModel> allHabits = List.from(habitController.habits);
+
+      // If we have more habits than we want to show, pick random ones
+      if (allHabits.length > _maxHabitsToShow) {
+        _randomHabits = _getRandomHabits(allHabits, _maxHabitsToShow);
+      } else {
+        // Otherwise use all available habits (up to 3)
+        _randomHabits = allHabits;
+      }
+
+      _isLoading = false;
+
+      // Only select a random habit if we have habits available
+      if (_randomHabits.isNotEmpty) {
+        _currentHabitIndex = 0; // Start with the first habit
+        _animationController.forward();
+      }
+    });
+  }
+
+  // Helper method to get a random subset of habits
+  List<HabitModel> _getRandomHabits(List<HabitModel> habits, int count) {
+    if (habits.isEmpty) return [];
+    if (habits.length <= count) return habits;
+
+    final random = Random();
+    final List<HabitModel> result = [];
+    final List<HabitModel> tempList = List.from(habits);
+
+    for (int i = 0; i < count; i++) {
+      final int randomIndex = random.nextInt(tempList.length);
+      result.add(tempList[randomIndex]);
+      tempList.removeAt(randomIndex);
+    }
+
+    return result;
+  }
+
   void _nextHabit() {
+    if (_randomHabits.isEmpty) return;
+
     setState(() {
       _currentHabitIndex = (_currentHabitIndex + 1) % _randomHabits.length;
       _isCountdownActive = false;
@@ -65,6 +108,8 @@ class _RandomHabitScreenState extends State<RandomHabitScreen> with SingleTicker
   }
 
   void _previousHabit() {
+    if (_randomHabits.isEmpty) return;
+
     setState(() {
       _currentHabitIndex = (_currentHabitIndex - 1 + _randomHabits.length) % _randomHabits.length;
       _isCountdownActive = false;
@@ -84,13 +129,30 @@ class _RandomHabitScreenState extends State<RandomHabitScreen> with SingleTicker
   }
 
   void _onProgressIndicatorTap(int index) {
-    // Handle progress indicator tap
+    if (_randomHabits.isEmpty) return;
+
+    setState(() {
+      _currentHabitIndex = index;
+      _isCountdownActive = false;
+    });
+  }
+
+  // Get color based on priority
+
+  // Convert HabitModel to the format needed by HabitCard
+  Map<String, dynamic> _convertHabitToMap(HabitModel habit) {
+    return {
+      'name': habit.name,
+      'duration': habit.focusTimeMinutes,
+      'priority': habit.priority,
+      'category': 'Habit', // If your HabitModel doesn't have a category, you can set a default
+      'color': ColorUtils.getPriorityColor(habit.priority), // Add color based on priority
+    };
   }
 
   @override
   Widget build(BuildContext context) {
     final isDarkMode = AppTheme.isDarkMode(context);
-    final currentHabit = _randomHabits[_currentHabitIndex];
     final accentColor = const Color(0xFF4B6EFF);
 
     // Calculate safe bottom padding accounting for navigation bar
@@ -125,7 +187,15 @@ class _RandomHabitScreenState extends State<RandomHabitScreen> with SingleTicker
           bottom: false,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 0),
-            child: Column(
+            child: _isLoading
+                ? Center(
+              child: CircularProgressIndicator(
+                color: accentColor,
+              ),
+            )
+                : _randomHabits.isEmpty
+                ? _buildEmptyState(isDarkMode)
+                : Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
@@ -149,14 +219,14 @@ class _RandomHabitScreenState extends State<RandomHabitScreen> with SingleTicker
                     }
                   },
                   child: HabitCard(
-                    habit: currentHabit,
+                    habit: _convertHabitToMap(_randomHabits[_currentHabitIndex]),
                     isDarkMode: isDarkMode,
                     textColor: isDarkMode ? Colors.white : Colors.black,
                   ),
                 ),
                 const SizedBox(height: 30),
                 TimerCircle(
-                  habit: currentHabit,
+                  habit: _convertHabitToMap(_randomHabits[_currentHabitIndex]),
                   isDarkMode: isDarkMode,
                   isCountdownActive: _isCountdownActive,
                   animation: _animation,
@@ -175,21 +245,25 @@ class _RandomHabitScreenState extends State<RandomHabitScreen> with SingleTicker
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       ActionButton(
-                        icon: Icons.refresh,
-                        label: 'Skip',
-                        color: accentColor,
+                        icon: Icons.swipe,
+                        label: 'Next',
+                        color: ColorUtils.getPriorityColor(_randomHabits[_currentHabitIndex].priority),
                         isDarkMode: isDarkMode,
-                        onPressed: _selectRandomHabit,
+                        onPressed: _nextHabit,
                         isOutlined: true,
                       ),
                       const SizedBox(width: 40), // Add margin between buttons
                       ActionButton(
                         icon: Icons.timer,
                         label: 'Open Timer',
-                        color: accentColor,
+                        color: ColorUtils.getPriorityColor(_randomHabits[_currentHabitIndex].priority),
                         isDarkMode: isDarkMode,
-                        onPressed: (){
-                          NavigationService.navigateTo(context, '/timer');
+                        onPressed: () {
+                          NavigationService.navigateTo(
+                              context,
+                              '/timer',
+                              arguments: {'habitId': _randomHabits[_currentHabitIndex].id}
+                          );
                         },
                         isOutlined: false,
                       ),
@@ -204,6 +278,58 @@ class _RandomHabitScreenState extends State<RandomHabitScreen> with SingleTicker
       bottomNavigationBar: BottomNavigation(
         currentIndex: _currentIndex,
         onTap: _onTabTapped,
+      ),
+      floatingActionButton: _randomHabits.isEmpty && !_isLoading ? FloatingActionButton(
+        onPressed: () => NavigationService.navigateTo(context, '/add_habit'),
+        backgroundColor: accentColor,
+        child: const Icon(Icons.add),
+      ) : null,
+    );
+  }
+
+  Widget _buildEmptyState(bool isDarkMode) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.hourglass_empty,
+            size: 80,
+            color: isDarkMode ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No habits found',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: isDarkMode ? Colors.white : Colors.black,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Create habits to start your random challenges',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              color: isDarkMode ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.7),
+            ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () => NavigationService.navigateTo(context, '/add_habit'),
+            icon: const Icon(Icons.add),
+            label: const Text('Add New Habit'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4B6EFF),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

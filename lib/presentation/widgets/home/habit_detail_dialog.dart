@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:momentum/core/theme/app_theme.dart';
 import 'package:momentum/presentation/services/navigation_service.dart';
-
+import 'package:momentum/presentation/widgets/home/edit_habit_dialog.dart';
 class HabitDetailDialog {
   static void show(BuildContext context, Map<String, dynamic> habit) {
     final isDarkMode = AppTheme.isDarkMode(context);
@@ -36,19 +36,19 @@ class HabitDetailDialog {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: _getPriorityColor(habit['priority']).withOpacity(0.2),
+                      color: _getPriorityColor(habit['priority'] ?? 'medium').withOpacity(0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
-                      _getPriorityIcon(habit['priority']),
-                      color: _getPriorityColor(habit['priority']),
+                      _getPriorityIcon(habit['priority'] ?? 'medium'),
+                      color: _getPriorityColor(habit['priority'] ?? 'medium'),
                       size: 20,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      habit['name'],
+                      habit['name'] ?? 'Unnamed Habit',
                       style: TextStyle(
                         color: isDarkMode ? Colors.white : Colors.black,
                         fontSize: 20,
@@ -71,26 +71,26 @@ class HabitDetailDialog {
               _buildDetailRow(
                 context,
                 Icons.schedule_rounded,
-                'Schedule',
-                habit['time'],
+                'Start Time',
+                habit['startTime'] ?? 'Not set',
                 isDarkMode,
               ),
               const SizedBox(height: 12),
               _buildDetailRow(
                 context,
-                Icons.local_fire_department_rounded,
-                'Current Streak',
-                '${habit['streak']} days',
+                Icons.timer_outlined,
+                'Focus Time',
+                '${habit['focusTimeMinutes'] ?? 0} minutes',
                 isDarkMode,
               ),
               const SizedBox(height: 12),
               _buildDetailRow(
                 context,
-                _getPriorityIcon(habit['priority']),
+                _getPriorityIcon(habit['priority'] ?? 'medium'),
                 'Priority',
-                habit['priority'].toUpperCase(),
+                (habit['priority'] ?? 'medium').toUpperCase(),
                 isDarkMode,
-                valueColor: _getPriorityColor(habit['priority']),
+                valueColor: _getPriorityColor(habit['priority'] ?? 'medium'),
               ),
 
               const SizedBox(height: 32),
@@ -108,7 +108,7 @@ class HabitDetailDialog {
                     child: IconButton(
                       onPressed: () {
                         Navigator.pop(context);
-                        NavigationService.navigateTo(context, '/edit_habit');
+                        EditHabitDialog.show(context, habit);
                       },
                       icon: Icon(
                         Icons.edit_rounded,
@@ -140,7 +140,11 @@ class HabitDetailDialog {
                     child: ElevatedButton(
                       onPressed: () {
                         Navigator.pop(context);
-                        NavigationService.navigateTo(context, '/timer');
+                        NavigationService.navigateTo(
+                            context,
+                            '/timer',
+                            arguments: {'habitId': habit['id']}
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
@@ -219,7 +223,7 @@ class HabitDetailDialog {
   }
 
   static Color _getPriorityColor(String priority) {
-    switch (priority) {
+    switch (priority.toLowerCase()) {
       case 'low':
         return const Color(0xFF4CAF50); // Green
       case 'medium':
@@ -232,7 +236,7 @@ class HabitDetailDialog {
   }
 
   static IconData _getPriorityIcon(String priority) {
-    switch (priority) {
+    switch (priority.toLowerCase()) {
       case 'low':
         return Icons.arrow_downward_rounded;
       case 'medium':

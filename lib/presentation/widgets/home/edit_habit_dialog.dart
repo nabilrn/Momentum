@@ -2,11 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:momentum/core/theme/app_theme.dart';
 import 'package:momentum/data/models/habit_model.dart';
 import 'package:momentum/presentation/controllers/habit_controller.dart';
-import 'package:momentum/presentation/widgets/add_habit/custom_text_field.dart';
-import 'package:momentum/presentation/widgets/add_habit/form_label.dart';
-import 'package:momentum/presentation/widgets/add_habit/priority_selector.dart';
-import 'package:momentum/presentation/widgets/add_habit/time_selector.dart';
 import 'package:provider/provider.dart';
+import 'package:momentum/core/services/auth_service.dart';
+
+// Add the StringExtension
+extension StringExtension on String {
+  String capitalize() {
+    if (isEmpty) return this;
+    return "${this[0].toUpperCase()}${substring(1).toLowerCase()}";
+  }
+}
 
 class EditHabitDialog {
   static void show(BuildContext context, Map<String, dynamic> habit) {
@@ -43,8 +48,9 @@ class EditHabitDialog {
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            void showTimePicker() async {
+            void showTimePickerDialog() async {
               final initialTime = startTime ?? TimeOfDay.now();
+
               final pickedTime = await showTimePicker(
                 context: context,
                 initialTime: initialTime,
@@ -75,68 +81,90 @@ class EditHabitDialog {
                   );
                 },
               );
+
               if (pickedTime != null) {
                 setState(() {
                   startTime = pickedTime;
                 });
               }
             }
-
-            void saveHabit() {
+            void saveHabit() async {
               if (formKey.currentState!.validate()) {
                 final controller = Provider.of<HabitController>(context, listen: false);
 
-                // Show loading indicator
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (context) => const Center(child: CircularProgressIndicator()),
-                );
+                try {
+                  // Show loading indicator
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (dialogContext) => const Center(child: CircularProgressIndicator()),
+                  );
 
-                // Create habit model for update
-                final habitModel = HabitModel(
-                  id: habit['id'],
-                  name: nameController.text,
-                  focusTimeMinutes: int.parse(focusTimeController.text),
-                  priority: selectedPriority.toLowerCase(),
-                  startTime: startTime != null ?
-                  "${startTime!.hour.toString().padLeft(2, '0')}:${startTime!.minute.toString().padLeft(2, '0')}" : null,
-                  userId: habit['userId'],
-                );
+                  // Import the AuthService at the top of your file:
+                  // import 'package:momentum/core/services/auth_service.dart';
 
-                // Update the habit
-                controller.updateHabit(habitModel).then((updatedHabit) {
+                  // Get current user ID directly from AuthService
+                  final authService = AuthService();
+                  final currentUserId = authService.currentUser?.id;
+
+                  print("Current user ID from AuthService: $currentUserId");
+
+                  if (currentUserId == null) {
+                    Navigator.of(context, rootNavigator: true).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Error: You must be logged in'), backgroundColor: Colors.red),
+                    );
+                    return;
+                  }
+
+                  // Create habit model for update
+                  final habitModel = HabitModel(
+                    id: habit['id'],
+                    name: nameController.text,
+                    focusTimeMinutes: int.parse(focusTimeController.text),
+                    priority: selectedPriority.toLowerCase(),
+                    startTime: startTime != null ?
+                    "${startTime!.hour.toString().padLeft(2, '0')}:${startTime!.minute.toString().padLeft(2, '0')}" : null,
+                    userId: currentUserId, // Use the user ID we got from AuthService
+                  );
+
+                  print("Updating habit with model: ${habitModel.toMap()}");
+
+                  // Update the habit - wait for completion
+                  final updatedHabit = await controller.updateHabit(habitModel);
+
                   // Close loading dialog
-                  Navigator.pop(context);
+                  Navigator.of(context, rootNavigator: true).pop();
 
                   if (updatedHabit != null) {
-                    // Show success message
+                    // Success handling
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Habit updated successfully!'),
-                        backgroundColor: const Color(0xFF4B6EFF),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
+                      const SnackBar(
+                        content: Text('Habit updated successfully!'),
+                        backgroundColor: Color(0xFF4B6EFF),
                       ),
                     );
 
-                    // Close the dialog
-                    Navigator.pop(context);
+                    // Close the edit dialog
+                    Navigator.of(context, rootNavigator: true).pop();
                   } else {
-                    // Show error message
-                    Navigator.pop(context);
+                    // Error handling
+                    print("Error from controller: ${controller.error}");
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Error: ${controller.error ?? "Failed to update habit"}'),
                         backgroundColor: Colors.red,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
                       ),
                     );
                   }
-                });
+                } catch (e) {
+                  print("Edit habit error: $e");
+                  // Close loading dialog if there's an error
+                  Navigator.of(context, rootNavigator: true).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                  );
+                }
               }
             }
 
@@ -202,17 +230,26 @@ class EditHabitDialog {
                         const SizedBox(height: 24),
 
                         // Habit Name
-                        FormLabel(
-                          label: 'Habit Name',
-                          textColor: textColor,
-                          icon: Icons.edit_rounded,
+                        Text(
+                          'Habit Name',
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                         const SizedBox(height: 8),
-                        CustomTextField(
+                        TextFormField(
                           controller: nameController,
-                          hintText: 'e.g., Morning Meditation',
-                          prefixIcon: Icons.lightbulb_outline,
-                          isDarkMode: isDarkMode,
+                          decoration: InputDecoration(
+                            hintText: 'e.g., Morning Meditation',
+                            prefixIcon: const Icon(Icons.lightbulb_outline),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            filled: true,
+                            fillColor: isDarkMode ? Colors.white.withOpacity(0.1) : Colors.grey.shade100,
+                          ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return 'Please enter a habit name';
@@ -223,18 +260,27 @@ class EditHabitDialog {
                         const SizedBox(height: 16),
 
                         // Focus Time
-                        FormLabel(
-                          label: 'Focus Time (minutes)',
-                          textColor: textColor,
-                          icon: Icons.hourglass_top_rounded,
+                        Text(
+                          'Focus Time (minutes)',
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                         const SizedBox(height: 8),
-                        CustomTextField(
+                        TextFormField(
                           controller: focusTimeController,
-                          hintText: 'e.g., 30',
-                          prefixIcon: Icons.timer_outlined,
+                          decoration: InputDecoration(
+                            hintText: 'e.g., 30',
+                            prefixIcon: const Icon(Icons.timer_outlined),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            filled: true,
+                            fillColor: isDarkMode ? Colors.white.withOpacity(0.1) : Colors.grey.shade100,
+                          ),
                           keyboardType: TextInputType.number,
-                          isDarkMode: isDarkMode,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return 'Please enter focus time';
@@ -248,37 +294,67 @@ class EditHabitDialog {
                         const SizedBox(height: 16),
 
                         // Priority Selection
-                        FormLabel(
-                          label: 'Priority Level',
-                          textColor: textColor,
-                          icon: Icons.flag_rounded,
+                        Text(
+                          'Priority Level',
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                         const SizedBox(height: 8),
-                        PrioritySelector(
-                          isDarkMode: isDarkMode,
-                          textColor: textColor,
-                          selectedType: selectedPriority.capitalize(),
-                          onPrioritySelected: (type) {
-                            setState(() {
-                              selectedPriority = type;
-                            });
-                          },
+                        Row(
+                          children: [
+                            _buildPriorityOption(context, 'High', selectedPriority, setState),
+                            const SizedBox(width: 8),
+                            _buildPriorityOption(context, 'Medium', selectedPriority, setState),
+                            const SizedBox(width: 8),
+                            _buildPriorityOption(context, 'Low', selectedPriority, setState),
+                          ],
                         ),
                         const SizedBox(height: 16),
 
                         // Start Time
-                        FormLabel(
-                          label: 'Start Time',
-                          textColor: textColor,
-                          icon: Icons.schedule_rounded,
+                        Text(
+                          'Start Time',
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                         const SizedBox(height: 8),
-                        TimeSelector(
-                          isDarkMode: isDarkMode,
-                          textColor: textColor,
-                          primaryColor: const Color(0xFF4B6EFF),
-                          selectedTime: startTime,
-                          onTap: showTimePicker,
+                        InkWell(
+                          onTap: showTimePickerDialog,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: isDarkMode ? Colors.white.withOpacity(0.1) : Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isDarkMode ? Colors.transparent : Colors.grey.shade300,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.schedule_rounded,
+                                  color: isDarkMode ? Colors.white70 : Colors.grey.shade700,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  startTime != null
+                                      ? '${startTime!.hour.toString().padLeft(2, '0')}:${startTime!.minute.toString().padLeft(2, '0')}'
+                                      : 'Select a time',
+                                  style: TextStyle(
+                                    color: textColor.withOpacity(startTime != null ? 1.0 : 0.7),
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 24),
 
@@ -314,5 +390,58 @@ class EditHabitDialog {
         );
       },
     );
+  }
+
+  static Widget _buildPriorityOption(
+      BuildContext context,
+      String priority,
+      String selectedPriority,
+      void Function(void Function()) setState) {
+
+    final isSelected = selectedPriority.toLowerCase() == priority.toLowerCase();
+    final color = _getPriorityColor(priority);
+
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            selectedPriority = priority;
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? color.withOpacity(0.2) : Colors.transparent,
+            border: Border.all(
+              color: isSelected ? color : Colors.grey.withOpacity(0.3),
+              width: 2,
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Center(
+            child: Text(
+              priority,
+              style: TextStyle(
+                color: isSelected ? color : Colors.grey,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Color _getPriorityColor(String priority) {
+    switch (priority.toLowerCase()) {
+      case 'low':
+        return const Color(0xFF4CAF50); // Green
+      case 'medium':
+        return const Color(0xFFFFC107); // Yellow/Amber
+      case 'high':
+        return const Color(0xFFF44336); // Red
+      default:
+        return const Color(0xFF4B6EFF); // Default blue
+    }
   }
 }

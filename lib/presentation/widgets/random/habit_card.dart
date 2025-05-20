@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../utils/color_utils.dart';
+import '../../utils/color_util_random.dart';
 
 class HabitCard extends StatelessWidget {
   final Map<String, dynamic> habit;
