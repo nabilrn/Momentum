@@ -13,7 +13,7 @@ class HabitController extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   List<HabitModel> _habits = [];
-  Map<String, List<HabitCompletionsModel>> _habitCompletions = {};
+  final Map<String, List<HabitCompletionsModel>> _habitCompletions = {};
 
 
   // Getters

@@ -4,7 +4,7 @@ import 'package:momentum/data/models/habit_model.dart';
 import 'package:momentum/presentation/controllers/habit_controller.dart';
 import 'package:provider/provider.dart';
 import 'package:momentum/core/services/auth_service.dart';
-
+import 'package:momentum/core/services/notification_service.dart';
 // Add the StringExtension
 extension StringExtension on String {
   String capitalize() {
@@ -24,8 +24,8 @@ class EditHabitDialog {
     final focusTimeController = TextEditingController(
         text: (habit['focusTimeMinutes'] ?? '').toString());
 
-    // State values
-    String selectedPriority = (habit['priority'] ?? 'high').toString();
+    // State values - perlu dibuat StatefulBuilder untuk menyimpan state
+    String selectedPriority = (habit['priority'] ?? 'high').toString().toLowerCase();
     TimeOfDay? startTime;
 
     // Parse start time if available
@@ -88,26 +88,30 @@ class EditHabitDialog {
                 });
               }
             }
+
+            // Fungsi untuk menangani pemilihan prioritas
+            void selectPriority(String priority) {
+              setState(() {
+                selectedPriority = priority.toLowerCase();
+              });
+              print('Selected priority: $selectedPriority'); // Debug
+            }
+
             void saveHabit() async {
               if (formKey.currentState!.validate()) {
                 final controller = Provider.of<HabitController>(context, listen: false);
 
                 try {
-                  // Show loading indicator
                   showDialog(
                     context: context,
                     barrierDismissible: false,
                     builder: (dialogContext) => const Center(child: CircularProgressIndicator()),
                   );
-
-                  // Import the AuthService at the top of your file:
-                  // import 'package:momentum/core/services/auth_service.dart';
-
-                  // Get current user ID directly from AuthService
                   final authService = AuthService();
                   final currentUserId = authService.currentUser?.id;
 
                   print("Current user ID from AuthService: $currentUserId");
+                  print("Selected priority when saving: $selectedPriority"); // Debug
 
                   if (currentUserId == null) {
                     Navigator.of(context, rootNavigator: true).pop();
@@ -116,13 +120,11 @@ class EditHabitDialog {
                     );
                     return;
                   }
-
-                  // Create habit model for update
                   final habitModel = HabitModel(
                     id: habit['id'],
                     name: nameController.text,
                     focusTimeMinutes: int.parse(focusTimeController.text),
-                    priority: selectedPriority.toLowerCase(),
+                    priority: selectedPriority.toLowerCase(), // Pastikan priority disimpan dengan benar
                     startTime: startTime != null ?
                     "${startTime!.hour.toString().padLeft(2, '0')}:${startTime!.minute.toString().padLeft(2, '0')}" : null,
                     userId: currentUserId, // Use the user ID we got from AuthService
@@ -137,6 +139,7 @@ class EditHabitDialog {
                   Navigator.of(context, rootNavigator: true).pop();
 
                   if (updatedHabit != null) {
+
                     // Success handling
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -167,7 +170,6 @@ class EditHabitDialog {
                 }
               }
             }
-
             return Dialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
               elevation: 0,
@@ -293,7 +295,7 @@ class EditHabitDialog {
                         ),
                         const SizedBox(height: 16),
 
-                        // Priority Selection
+                        // Priority Selection - Gunakan fungsi selectPriority yang baru
                         Text(
                           'Priority Level',
                           style: TextStyle(
@@ -305,11 +307,11 @@ class EditHabitDialog {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            _buildPriorityOption(context, 'High', selectedPriority, setState),
+                            _buildPriorityOption(context, 'High', selectedPriority, selectPriority),
                             const SizedBox(width: 8),
-                            _buildPriorityOption(context, 'Medium', selectedPriority, setState),
+                            _buildPriorityOption(context, 'Medium', selectedPriority, selectPriority),
                             const SizedBox(width: 8),
-                            _buildPriorityOption(context, 'Low', selectedPriority, setState),
+                            _buildPriorityOption(context, 'Low', selectedPriority, selectPriority),
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -396,7 +398,7 @@ class EditHabitDialog {
       BuildContext context,
       String priority,
       String selectedPriority,
-      void Function(void Function()) setState) {
+      Function(String) onSelect) {
 
     final isSelected = selectedPriority.toLowerCase() == priority.toLowerCase();
     final color = _getPriorityColor(priority);
@@ -404,9 +406,7 @@ class EditHabitDialog {
     return Expanded(
       child: InkWell(
         onTap: () {
-          setState(() {
-            selectedPriority = priority;
-          });
+          onSelect(priority); // Gunakan fungsi callback untuk update state
         },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),

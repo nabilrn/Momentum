@@ -1,20 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:momentum/core/theme/app_theme.dart';
 import 'package:intl/intl.dart';
+import 'dart:async';
 
-class TimeDateCard extends StatelessWidget {
+class TimeDateCard extends StatefulWidget {
   const TimeDateCard({super.key});
+
+  @override
+  State<TimeDateCard> createState() => _TimeDateCardState();
+}
+
+class _TimeDateCardState extends State<TimeDateCard> {
+  late DateTime _currentTime;
+  late Timer _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentTime = DateTime.now();
+    // Update time every second
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentTime = DateTime.now();
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel(); // Make sure to cancel the timer to prevent memory leaks
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDarkMode = AppTheme.isDarkMode(context);
     final primaryColor = const Color(0xFF4B6EFF);
 
-    // Get the current date and format it
-    final now = DateTime.now();
-    final formattedDay = DateFormat('EEEE').format(now);
-    final formattedDate = DateFormat('MMMM d').format(now);
-    final formattedTime = DateFormat('HH:mm').format(now);
+    // Format the current time and date
+    final formattedDay = DateFormat('EEEE').format(_currentTime);
+    final formattedDate = DateFormat('MMMM d').format(_currentTime);
+    final formattedTime = DateFormat('HH:mm:ss').format(_currentTime); // Added seconds
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -63,13 +91,26 @@ class TimeDateCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  Text(
-                    formattedTime,
-                    style: TextStyle(
-                      color: isDarkMode ? Colors.white : Colors.black,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        formattedTime.substring(0, 5), // Hours and minutes
+                        style: TextStyle(
+                          color: isDarkMode ? Colors.white : Colors.black,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        formattedTime.substring(5), // Seconds
+                        style: TextStyle(
+                          color: primaryColor,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 6),
                   Text(

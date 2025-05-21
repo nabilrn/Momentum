@@ -70,7 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDarkMode = AppTheme.isDarkMode(context);
 
     return Scaffold(
-      extendBody: true,
+      extendBody: true, // Important for transparent navigation bar
       backgroundColor: isDarkMode ? const Color(0xFF121117) : Colors.white,
       appBar: const HomeAppBar(),
       body: _buildBody(isDarkMode),
@@ -83,34 +83,43 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildBody(bool isDarkMode) {
-    return Container(
-      decoration: isDarkMode
-          ? const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF121117),
-            Color(0xFF1A1A24),
-          ],
-        ),
-      )
-          : null, // No decoration needed for light mode - more efficient
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 8),
-          _buildWelcomeMessage(isDarkMode),
-          const TimeDateCard(),
-          Expanded(
-            child: Consumer<HabitController>(
-              // Using Consumer for more targeted rebuilds
-              builder: (context, habitController, _) => HabitList(
-                habitController: habitController,
+    // Add SafeArea with bottom: false to respect system navigation areas but not bottom nav
+    return SafeArea(
+      bottom: false,
+      child: Container(
+        decoration: isDarkMode
+            ? const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF121117),
+              Color(0xFF1A1A24),
+            ],
+          ),
+        )
+            : null, // No decoration needed for light mode - more efficient
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 8),
+            _buildWelcomeMessage(isDarkMode),
+            const TimeDateCard(),
+            Expanded(
+              // Wrap in a Padding with bottom padding to account for bottom navigation
+              child: Padding(
+                // Add padding at the bottom to prevent content from being obscured by the nav bar
+                padding: const EdgeInsets.only(bottom: 80), // Adjust this value based on your nav bar height
+                child: Consumer<HabitController>(
+                  // Using Consumer for more targeted rebuilds
+                  builder: (context, habitController, _) => HabitList(
+                    habitController: habitController,
+                  ),
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

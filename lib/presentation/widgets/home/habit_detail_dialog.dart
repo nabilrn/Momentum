@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:momentum/core/theme/app_theme.dart';
 import 'package:momentum/presentation/services/navigation_service.dart';
-import 'package:momentum/presentation/widgets/home/edit_habit_dialog.dart';
 class HabitDetailDialog {
   static void show(BuildContext context, Map<String, dynamic> habit) {
     final isDarkMode = AppTheme.isDarkMode(context);
@@ -100,24 +99,6 @@ class HabitDetailDialog {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // Edit button
-                  Container(
-                    decoration: BoxDecoration(
-                      color: isDarkMode ? Colors.white.withOpacity(0.1) : Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: IconButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        EditHabitDialog.show(context, habit);
-                      },
-                      icon: Icon(
-                        Icons.edit_rounded,
-                        color: isDarkMode ? Colors.white70 : Colors.black54,
-                        size: 24,
-                      ),
-                      tooltip: 'Edit habit',
-                    ),
-                  ),
 
                   // Primary action button
                   Container(

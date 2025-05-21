@@ -7,7 +7,6 @@ import '../widgets/overview/stat_card.dart';
 import '../widgets/overview/progress_section.dart';
 import '../widgets/overview/weekly_chart.dart';
 import '../controllers/habit_controller.dart';
-import 'package:momentum/data/models/habit_model.dart';
 
 class OverviewScreen extends StatefulWidget {
   const OverviewScreen({super.key});

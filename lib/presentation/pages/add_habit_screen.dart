@@ -7,7 +7,7 @@ import '../widgets/add_habit/priority_selector.dart';
 import '../widgets/add_habit/time_selector.dart';
 import 'package:momentum/presentation/controllers/habit_controller.dart';
 import 'package:provider/provider.dart';
-
+import 'package:momentum/core/services/notification_service.dart';
 
 
 class AddHabitScreen extends StatefulWidget {
@@ -111,6 +111,8 @@ class _AddHabitScreenState extends State<AddHabitScreen> with SingleTickerProvid
         Navigator.pop(context);
 
         if (habit != null) {
+
+
           // Show success message
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -141,7 +143,6 @@ class _AddHabitScreenState extends State<AddHabitScreen> with SingleTickerProvid
       });
     }
   }
-
   @override
   Widget build(BuildContext context) {
     final isDarkMode = AppTheme.isDarkMode(context);

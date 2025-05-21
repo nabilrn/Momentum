@@ -302,7 +302,7 @@ class AuthService {
 
         // If we get here, we didn't get any tokens - retry after a short delay
         retryCount++;
-        debugPrint('⚠️ AuthService: No tokens received, retrying (${retryCount}/${maxRetries})');
+        debugPrint('⚠️ AuthService: No tokens received, retrying ($retryCount/$maxRetries)');
         await Future.delayed(Duration(milliseconds: 500));
 
       } catch (e) {

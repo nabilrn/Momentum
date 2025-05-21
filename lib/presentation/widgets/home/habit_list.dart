@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:momentum/presentation/controllers/habit_controller.dart';
 import 'package:momentum/presentation/widgets/home/habit_item.dart';
 import 'package:momentum/presentation/widgets/home/filter_bottom_sheet.dart';
+import 'package:momentum/presentation/widgets/home/edit_habit_dialog.dart';
 
 class HabitList extends StatefulWidget {
   final HabitController habitController;
@@ -153,25 +154,41 @@ class _HabitListState extends State<HabitList> {
 
   Widget _buildDismissibleHabit(Map<String, dynamic> habit, int index) {
     return Dismissible(
-      key: ValueKey(habit['id']), // Use ValueKey instead of Key
-      background: _buildDismissibleBackground(),
-      secondaryBackground: _buildDismissibleBackground(),
-      direction: DismissDirection.endToStart,
+      key: ValueKey(habit['id']),
+      // Background for rightward swipe (edit)
+      background: _buildEditBackground(),
+      // Background for leftward swipe (delete)
+      secondaryBackground: _buildDeleteBackground(),
+      // Enable both directions
+      direction: DismissDirection.horizontal,
       confirmDismiss: (direction) async {
-        return await _confirmDeletion(context, habit);
+        if (direction == DismissDirection.endToStart) {
+          // Swiping from right to left (delete)
+          return await _confirmDeletion(context, habit);
+        } else {
+          // Swiping from left to right (edit)
+          // Don't dismiss, we'll handle the edit action manually
+          _handleEditHabit(habit);
+          return false;
+        }
       },
       onDismissed: (direction) {
-        // Remove from the original data source first
-        final habitId = habit['id'];
-
-        // Execute deletion logic in a separate method to avoid rebuilding issues
-        _handleHabitDeletion(habitId, habit['name']);
+        if (direction == DismissDirection.endToStart) {
+          // Remove from the original data source (delete)
+          final habitId = habit['id'];
+          _handleHabitDeletion(habitId, habit['name']);
+        }
       },
       child: HabitItem(habit: habit),
     );
   }
 
-// Handle habit deletion as a separate process without undo
+  void _handleEditHabit(Map<String, dynamic> habit) {
+    // Show edit dialog using the imported EditHabitDialog
+    EditHabitDialog.show(context, habit);
+  }
+
+  // Handle habit deletion as a separate process without undo
   void _handleHabitDeletion(String habitId, String habitName) {
     // First, remove from the controller.
     widget.habitController.deleteHabit(habitId).then((_) {
@@ -179,12 +196,47 @@ class _HabitListState extends State<HabitList> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("$habitName deleted"),
+          // Position the snackbar above the bottom navigation bar
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.only(
+            bottom: 80.0, // Adjust this value based on your bottom nav height
+            left: 10.0,
+            right: 10.0,
+          ),
         ),
       );
     });
   }
 
-  Widget _buildDismissibleBackground() {
+  Widget _buildEditBackground() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF4B6EFF), // Blue color for edit
+        borderRadius: BorderRadius.circular(8),
+      ),
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.only(left: 20.0),
+      child: const Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.edit,
+            color: Colors.white,
+          ),
+          SizedBox(height: 4),
+          Text(
+            'Edit',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeleteBackground() {
     return Container(
       decoration: BoxDecoration(
         color: Colors.red,
