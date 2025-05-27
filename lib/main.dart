@@ -15,17 +15,18 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:momentum/presentation/providers/auth_provider.dart';
 import 'package:momentum/presentation/controllers/habit_controller.dart';
+import 'package:momentum/core/services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-
   await SupabaseService.initialize();
 
+  // Initialize notification service
+  await NotificationService.initialize();
 
   runApp(const MomentumApp());
 }
-
 class MomentumApp extends StatefulWidget {
   const MomentumApp({super.key});
 

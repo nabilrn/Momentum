@@ -5,6 +5,10 @@ import '../widgets/settings/sections/appearance_section.dart';
 import '../widgets/settings/sections/notifications_section.dart';
 import '../widgets/settings/sections/account_section.dart';
 import '../widgets/settings/sections/about_section.dart';
+import 'package:momentum/core/services/notification_service.dart';
+import 'package:momentum/core/services/auth_service.dart';
+import 'package:provider/provider.dart';
+import 'package:momentum/presentation/providers/auth_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -14,14 +18,20 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProviderStateMixin {
-  bool _notificationsEnabled = true;
-  String _themeMode = 'system'; // 'dark', 'light', 'system'
+  // Change default to false as requested
+  bool _notificationsEnabled = false;
+  String _themeMode = 'system';
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  late AuthService _authService;
 
   @override
   void initState() {
     super.initState();
+
+    // Initialize auth service properly
+    _authService = Provider.of<AuthProvider>(context, listen: false).authService;
+
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
@@ -30,6 +40,16 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
     _animationController.forward();
+
+    // Load notification preferences
+    _loadNotificationPreferences();
+  }
+
+  Future<void> _loadNotificationPreferences() async {
+    final enabled = await NotificationService.areNotificationsEnabled();
+    setState(() {
+      _notificationsEnabled = enabled;
+    });
   }
 
   @override
@@ -47,10 +67,53 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     }
   }
 
-  void _handleNotificationChanged(bool value) {
-    setState(() {
-      _notificationsEnabled = value;
-    });
+  void _handleNotificationChanged(bool value) async {
+    if (value) {
+      // When enabling notifications
+      final hasPermission = await NotificationService.requestPermissions(context);
+      if (hasPermission) {
+        // Update UI state
+        setState(() {
+          _notificationsEnabled = value;
+        });
+
+        // Save the preference
+        await NotificationService.setNotificationsEnabled(value);
+
+        // Schedule notifications for current user
+        final userId = _authService.currentUser?.id;
+        if (userId != null) {
+          await NotificationService.scheduleHabitReminders(userId);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Habit reminders turned on'))
+            );
+          }
+        }
+      } else {
+        // Don't update state if permission denied
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Permission denied. Please enable notifications in settings'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } else {
+      // When disabling notifications
+      setState(() {
+        _notificationsEnabled = value;
+      });
+      await NotificationService.setNotificationsEnabled(false);
+      await NotificationService.cancelAllNotifications();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Habit reminders turned off'))
+        );
+      }
+    }
   }
 
   @override
