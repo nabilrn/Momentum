@@ -57,5 +57,7 @@
     		</array>
     	</dict>
     </array>
+    <key>NSUserNotificationUsageDescription</key>
+    <string>This app needs notification permission to remind you about your habits</string>
 </dict>
 </plist>
