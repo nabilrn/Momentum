@@ -8,9 +8,11 @@ import '../controllers/habit_controller.dart';
 import '../widgets/timer/timer_app_bar.dart';
 import '../widgets/timer/timer_circle.dart';
 import '../widgets/timer/timer_controls.dart';
-import '../utils/color_util_random.dart'; // Added ColorUtils import
+import '../utils/color_util_random.dart';
 import 'package:momentum/core/services/habit_completion_service.dart';
 import 'package:momentum/data/datasources/supabase_datasource.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class TimerScreen extends StatefulWidget {
   final String? habitId;
@@ -36,6 +38,10 @@ class _TimerScreenState extends State<TimerScreen> with TickerProviderStateMixin
   late Animation<double> _pulseAnimation;
   late Animation<double> _completionAnimation;
 
+  // Sound and notification variables
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
+
   @override
   void initState() {
     super.initState();
@@ -60,10 +66,25 @@ class _TimerScreenState extends State<TimerScreen> with TickerProviderStateMixin
       curve: Curves.easeOutBack,
     );
 
+    // Initialize notifications
+    _initializeNotifications();
+
     // Load habit data in the next frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadHabitData();
     });
+  }
+
+  // Initialize the notifications plugin
+  Future<void> _initializeNotifications() async {
+    const AndroidInitializationSettings androidSettings =
+    AndroidInitializationSettings('@mipmap/ic_launcher');
+    const DarwinInitializationSettings iosSettings =
+    DarwinInitializationSettings();
+    const InitializationSettings initSettings = InitializationSettings(
+        android: androidSettings, iOS: iosSettings);
+
+    await _notificationsPlugin.initialize(initSettings);
   }
 
   void _loadHabitData() {
@@ -87,6 +108,7 @@ class _TimerScreenState extends State<TimerScreen> with TickerProviderStateMixin
     _timer?.cancel();
     _pulseController.dispose();
     _completionController.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -146,18 +168,63 @@ class _TimerScreenState extends State<TimerScreen> with TickerProviderStateMixin
     _timer?.cancel();
     HapticFeedback.heavyImpact();
 
+    // Play alarm sound
+    _playAlarmSound();
+
+    // Show notification
+    _showCompletionNotification();
+
     setState(() {
       _isRunning = false;
       _isCompleted = true;
     });
 
-    // Catat habit completion jika habit tersedia
+    // Record habit completion if available
     if (_habit != null) {
       final habitCompletionService = HabitCompletionService(SupabaseDataSource());
       habitCompletionService.recordCompletion(_habit!.id!);
     }
 
     _completionController.forward();
+  }
+
+  // Play alarm sound when timer completes
+  Future<void> _playAlarmSound() async {
+    try {
+      // You'll need to add alarm.mp3 file to your assets/audio folder
+      await _audioPlayer.play(AssetSource('audio/alarm.mp3'));
+    } catch (e) {
+      debugPrint('Error playing sound: $e');
+    }
+  }
+
+  // Show a local notification when timer completes
+  Future<void> _showCompletionNotification() async {
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'timer_channel',
+      'Timer Notifications',
+      importance: Importance.max,
+      priority: Priority.high,
+      showWhen: true,
+    );
+
+    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    const NotificationDetails details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    await _notificationsPlugin.show(
+      0,
+      _habit?.name ?? "Focus Timer",
+      "Time's up! You've completed your focus session.",
+      details,
+    );
   }
 
   @override
@@ -220,7 +287,7 @@ class _TimerScreenState extends State<TimerScreen> with TickerProviderStateMixin
                 onReset: _resetTimer,
                 onToggle: _toggleTimer,
                 onNavigateToHome: () {
-                  Navigator.of(context).pushReplacementNamed('/home'); // Navigate to home
+                  Navigator.of(context).pushReplacementNamed('/home');
                 },
               ),
             ),

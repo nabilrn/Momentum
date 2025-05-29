@@ -18,6 +18,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   late String _timeOfDay;
+  bool _isLoading = true; // Add loading state
 
   // Cache these values for better performance
   final Color _accentColor = const Color(0xFF6C4BFF);
@@ -30,9 +31,15 @@ class _HomeScreenState extends State<HomeScreen> {
     // Calculate time of day once during initialization
     _timeOfDay = _calculateTimeOfDay();
 
-    // Load habits after the first frame
+    // Load habits after the first frame and track loading state
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<HabitController>(context, listen: false).loadHabits();
+      final habitController = Provider.of<HabitController>(context, listen: false);
+      setState(() => _isLoading = true);
+      habitController.loadHabits().then((_) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      });
     });
   }
 
@@ -83,7 +90,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildBody(bool isDarkMode) {
-    // Add SafeArea with bottom: false to respect system navigation areas but not bottom nav
     return SafeArea(
       bottom: false,
       child: Container(
@@ -106,12 +112,11 @@ class _HomeScreenState extends State<HomeScreen> {
             _buildWelcomeMessage(isDarkMode),
             const TimeDateCard(),
             Expanded(
-              // Wrap in a Padding with bottom padding to account for bottom navigation
               child: Padding(
-                // Add padding at the bottom to prevent content from being obscured by the nav bar
-                padding: const EdgeInsets.only(bottom: 80), // Adjust this value based on your nav bar height
-                child: Consumer<HabitController>(
-                  // Using Consumer for more targeted rebuilds
+                padding: const EdgeInsets.only(bottom: 80),
+                child: _isLoading
+                    ? _buildLoadingIndicator()
+                    : Consumer<HabitController>(
                   builder: (context, habitController, _) => HabitList(
                     habitController: habitController,
                   ),
@@ -120,6 +125,21 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingIndicator() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(_primaryColor),
+          ),
+          const SizedBox(height: 16),
+          const Text('Loading your habits...'),
+        ],
       ),
     );
   }

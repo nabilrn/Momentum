@@ -44,6 +44,8 @@ dependencies:
   path: ^1.9.1
   firebase_core: ^3.13.1
   firebase_messaging: ^15.2.6
+  skeletonizer: ^1.4.3
+  audioplayers: ^6.4.0
 
 
 dev_dependencies:
@@ -61,3 +63,4 @@ flutter:
     - lib/assets/google_logo.png
     - lib/assets/momentum_logo.png
     - lib/assets/world_map.png
+    - lib/assets/audio/alarm.mp3

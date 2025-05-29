@@ -19,10 +19,10 @@ class HabitList extends StatefulWidget {
 class _HabitListState extends State<HabitList> {
   String _titleFilter = '';
   List<String> _timeFilters = [];
-  // Track locally filtered habits to ensure proper state management
   List<dynamic> _filteredHabits = [];
+  // Track dismissed habit IDs to prevent rebuilding dismissed items
+  final Set<String> _dismissedHabitIds = {};
 
-  // Time ranges for filtering - made more dynamic
   final Map<String, TimeRange> _timeRanges = {
     'Morning': TimeRange(5, 12),
     'Afternoon': TimeRange(12, 17),
@@ -33,20 +33,26 @@ class _HabitListState extends State<HabitList> {
   @override
   void initState() {
     super.initState();
-    // Initialize filtered habits
     _updateFilteredHabits();
   }
 
   @override
   void didUpdateWidget(HabitList oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Update filtered habits when parent widget updates
-    _updateFilteredHabits();
+    // Only update filtered habits if the controller's habits have changed
+    if (oldWidget.habitController.habits != widget.habitController.habits) {
+      _updateFilteredHabits();
+    }
   }
 
   void _updateFilteredHabits() {
     setState(() {
-      _filteredHabits = _applyFilters(widget.habitController.habits);
+      // Exclude dismissed habits
+      _filteredHabits = _applyFilters(
+        widget.habitController.habits
+            .where((habit) => !_dismissedHabitIds.contains(habit.id))
+            .toList(),
+      );
     });
   }
 
@@ -131,7 +137,6 @@ class _HabitListState extends State<HabitList> {
         setState(() {
           _titleFilter = title;
           _timeFilters = timeFilters;
-          // Update filtered habits when filters change
           _updateFilteredHabits();
         });
       },
@@ -153,53 +158,72 @@ class _HabitListState extends State<HabitList> {
   }
 
   Widget _buildDismissibleHabit(Map<String, dynamic> habit, int index) {
+    // Ensure habit['id'] is non-null and unique
+    if (habit['id'].isEmpty) {
+      debugPrint('Warning: Habit ID is empty for ${habit['name']}');
+    }
     return Dismissible(
       key: ValueKey(habit['id']),
-      // Background for rightward swipe (edit)
       background: _buildEditBackground(),
-      // Background for leftward swipe (delete)
       secondaryBackground: _buildDeleteBackground(),
-      // Enable both directions
       direction: DismissDirection.horizontal,
       confirmDismiss: (direction) async {
         if (direction == DismissDirection.endToStart) {
-          // Swiping from right to left (delete)
           return await _confirmDeletion(context, habit);
         } else {
-          // Swiping from left to right (edit)
-          // Don't dismiss, we'll handle the edit action manually
           _handleEditHabit(habit);
           return false;
         }
       },
       onDismissed: (direction) {
         if (direction == DismissDirection.endToStart) {
-          // Remove from the original data source (delete)
           final habitId = habit['id'];
-          _handleHabitDeletion(habitId, habit['name']);
+          final habitName = habit['name'];
+
+          // Add to dismissed IDs to prevent rebuilding
+          setState(() {
+            _dismissedHabitIds.add(habitId);
+            _filteredHabits.removeWhere((h) => h.id == habitId);
+          });
+
+          // Handle backend deletion
+          _handleHabitDeletion(habitId, habitName);
         }
       },
       child: HabitItem(habit: habit),
     );
   }
 
-  void _handleEditHabit(Map<String, dynamic> habit) {
-    // Show edit dialog using the imported EditHabitDialog
-    EditHabitDialog.show(context, habit);
-  }
-
-  // Handle habit deletion as a separate process without undo
   void _handleHabitDeletion(String habitId, String habitName) {
-    // First, remove from the controller.
     widget.habitController.deleteHabit(habitId).then((_) {
-      // Show snackbar notification after deletion completes.
+      // Show snackbar on successful deletion
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("$habitName deleted"),
-          // Position the snackbar above the bottom navigation bar
           behavior: SnackBarBehavior.floating,
-          margin: EdgeInsets.only(
-            bottom: 80.0, // Adjust this value based on your bottom nav height
+          margin: const EdgeInsets.only(
+            bottom: 80.0,
+            left: 10.0,
+            right: 10.0,
+          ),
+        ),
+      );
+      // Remove from dismissed IDs after successful deletion
+      setState(() {
+        _dismissedHabitIds.remove(habitId);
+      });
+    }).catchError((error) {
+      // On error, restore the habit in the UI
+      setState(() {
+        _dismissedHabitIds.remove(habitId);
+        _updateFilteredHabits();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed to delete $habitName: $error"),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.only(
+            bottom: 80.0,
             left: 10.0,
             right: 10.0,
           ),
@@ -208,10 +232,22 @@ class _HabitListState extends State<HabitList> {
     });
   }
 
+  void _handleEditHabit(Map<String, dynamic> habit) {
+    EditHabitDialog.show(
+      context,
+      habit,
+      onHabitUpdated: () {
+        // Force rebuild of the list
+        setState(() {
+          _updateFilteredHabits();
+        });
+      },
+    );
+  }
   Widget _buildEditBackground() {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF4B6EFF), // Blue color for edit
+        color: const Color(0xFF4B6EFF),
         borderRadius: BorderRadius.circular(8),
       ),
       alignment: Alignment.centerLeft,
@@ -281,7 +317,8 @@ class _HabitListState extends State<HabitList> {
           ),
         ],
       ),
-    ) ?? false;  // Default to false if dialog is dismissed
+    ) ??
+        false;
   }
 
   Widget _buildActiveFiltersChips() {
@@ -355,9 +392,7 @@ class _HabitListState extends State<HabitList> {
           ),
           const SizedBox(height: 16),
           Text(
-            hasFilters
-                ? 'No habits match your filters'
-                : 'No habits added yet',
+            hasFilters ? 'No habits match your filters' : 'No habits added yet',
             style: const TextStyle(
               fontSize: 18,
               color: Colors.grey,
@@ -379,11 +414,9 @@ class _HabitListState extends State<HabitList> {
 
   List<dynamic> _applyFilters(List<dynamic> habits) {
     return habits.where((habit) {
-      // Title filter - case-insensitive search
       final nameMatches = _titleFilter.isEmpty ||
           (habit.name?.toLowerCase() ?? '').contains(_titleFilter.toLowerCase());
 
-      // Time filter
       bool timeMatches = _timeFilters.isEmpty;
 
       if (!timeMatches && habit.startTime != null) {
@@ -396,24 +429,20 @@ class _HabitListState extends State<HabitList> {
 
   bool _checkTimeMatch(String timeStr) {
     try {
-      // Parse time string like "12:30" to get the hour
       final parts = timeStr.split(':');
       if (parts.length < 2) return false;
 
       final hour = int.tryParse(parts[0]) ?? -1;
       if (hour < 0) return false;
 
-      // Check each selected time filter
       for (final filter in _timeFilters) {
         final timeRange = _timeRanges[filter];
         if (timeRange != null) {
           if (timeRange.start < timeRange.end) {
-            // Normal time range (e.g., 5-12)
             if (hour >= timeRange.start && hour < timeRange.end) {
               return true;
             }
           } else {
-            // Overnight time range (e.g., 22-5)
             if (hour >= timeRange.start || hour < timeRange.end) {
               return true;
             }
@@ -428,7 +457,6 @@ class _HabitListState extends State<HabitList> {
   }
 }
 
-// Helper class for time ranges
 class TimeRange {
   final int start;
   final int end;

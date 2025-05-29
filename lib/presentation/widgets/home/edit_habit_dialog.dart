@@ -4,7 +4,7 @@ import 'package:momentum/data/models/habit_model.dart';
 import 'package:momentum/presentation/controllers/habit_controller.dart';
 import 'package:provider/provider.dart';
 import 'package:momentum/core/services/auth_service.dart';
-import 'package:momentum/core/services/notification_service.dart';
+
 // Add the StringExtension
 extension StringExtension on String {
   String capitalize() {
@@ -14,7 +14,7 @@ extension StringExtension on String {
 }
 
 class EditHabitDialog {
-  static void show(BuildContext context, Map<String, dynamic> habit) {
+  static void show(BuildContext context, Map<String, dynamic> habit, {Function? onHabitUpdated}) {
     final isDarkMode = AppTheme.isDarkMode(context);
     final textColor = isDarkMode ? Colors.white : Colors.black;
     final formKey = GlobalKey<FormState>();
@@ -24,7 +24,7 @@ class EditHabitDialog {
     final focusTimeController = TextEditingController(
         text: (habit['focusTimeMinutes'] ?? '').toString());
 
-    // State values - perlu dibuat StatefulBuilder untuk menyimpan state
+    // State values
     String selectedPriority = (habit['priority'] ?? 'high').toString().toLowerCase();
     TimeOfDay? startTime;
 
@@ -111,7 +111,7 @@ class EditHabitDialog {
                   final currentUserId = authService.currentUser?.id;
 
                   print("Current user ID from AuthService: $currentUserId");
-                  print("Selected priority when saving: $selectedPriority"); // Debug
+                  print("Selected priority when saving: $selectedPriority");
 
                   if (currentUserId == null) {
                     Navigator.of(context, rootNavigator: true).pop();
@@ -124,10 +124,10 @@ class EditHabitDialog {
                     id: habit['id'],
                     name: nameController.text,
                     focusTimeMinutes: int.parse(focusTimeController.text),
-                    priority: selectedPriority.toLowerCase(), // Pastikan priority disimpan dengan benar
+                    priority: selectedPriority.toLowerCase(),
                     startTime: startTime != null ?
                     "${startTime!.hour.toString().padLeft(2, '0')}:${startTime!.minute.toString().padLeft(2, '0')}" : null,
-                    userId: currentUserId, // Use the user ID we got from AuthService
+                    userId: currentUserId,
                   );
 
                   print("Updating habit with model: ${habitModel.toMap()}");
@@ -139,6 +139,13 @@ class EditHabitDialog {
                   Navigator.of(context, rootNavigator: true).pop();
 
                   if (updatedHabit != null) {
+                    // Reload habits to refresh the UI immediately
+                    await controller.loadHabits();
+
+                    // Call the callback with updated habit data
+                    if (onHabitUpdated != null) {
+                      onHabitUpdated();
+                    }
 
                     // Success handling
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -295,7 +302,7 @@ class EditHabitDialog {
                         ),
                         const SizedBox(height: 16),
 
-                        // Priority Selection - Gunakan fungsi selectPriority yang baru
+                        // Priority Selection
                         Text(
                           'Priority Level',
                           style: TextStyle(
@@ -406,7 +413,7 @@ class EditHabitDialog {
     return Expanded(
       child: InkWell(
         onTap: () {
-          onSelect(priority); // Gunakan fungsi callback untuk update state
+          onSelect(priority);
         },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),

@@ -59,5 +59,9 @@
     </array>
     <key>NSUserNotificationUsageDescription</key>
     <string>This app needs notification permission to remind you about your habits</string>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>audio</string>
+    </array>
 </dict>
 </plist>

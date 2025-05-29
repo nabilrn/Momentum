@@ -11,7 +11,6 @@ import 'package:momentum/presentation/pages/timer_screen.dart';
 import 'package:momentum/presentation/pages/settings_screen.dart';
 import 'package:momentum/presentation/pages/account_screen.dart';
 import 'package:momentum/core/services/supabase_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:momentum/presentation/providers/auth_provider.dart';
 import 'package:momentum/presentation/controllers/habit_controller.dart';
@@ -48,90 +47,70 @@ class _MomentumAppState extends State<MomentumApp> {
         ChangeNotifierProvider(create: (_) => HabitController()),
         // Add other providers here as needed
       ],
-      child: Consumer<AuthProvider>(
-        builder: (context, authProvider, _) {
-          return MaterialApp(
-            title: 'Momentum App',
-            debugShowCheckedModeBanner: false,
-            theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
-            themeMode: ThemeMode.system,
-            home: StreamBuilder<AuthState>(
-              stream: authProvider.authService.authStateChanges,
-              builder: (context, snapshot) {
-                // Show splash screen initially
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const SplashScreen();
-                }
-
-                // If user is signed in, show home screen
-                if (authProvider.authService.isSignedIn) {
-                  return const HomeScreen();
-                }
-
-                // If user is not signed in, show welcome screen
-                return const WelcomeScreen();
-              },
-            ),
-            onGenerateRoute: (settings) {
-              switch (settings.name) {
-                case '/welcome':
-                  return PageTransition(
-                    type: PageTransitionType.fade,
-                    child: const WelcomeScreen(),
-                    duration: const Duration(milliseconds: 300),
-                  );
-                case '/home':
-                  return PageTransition(
-                    type: PageTransitionType.fade,
-                    child: const HomeScreen(),
-                    duration: const Duration(milliseconds: 300),
-                  );
-                case '/random_habit':
-                  return PageTransition(
-                    type: PageTransitionType.fade,
-                    child: const RandomHabitScreen(),
-                    duration: const Duration(milliseconds: 300),
-                  );
-                case '/overview':
-                  return PageTransition(
-                    type: PageTransitionType.fade,
-                    child: const OverviewScreen(),
-                    duration: const Duration(milliseconds: 300),
-                  );
-                case '/add_habit':
-                  return PageTransition(
-                    type: PageTransitionType.fade,
-                    child: const AddHabitScreen(),
-                    duration: const Duration(milliseconds: 300),
-                  );
-                case '/timer':
-                  return PageTransition(
-                    type: PageTransitionType.fade,
-                    child: const TimerScreen(),
-                    duration: const Duration(milliseconds: 300),
-                  );
-                case '/settings':
-                  return PageTransition(
-                    type: PageTransitionType.fade,
-                    child: const SettingsScreen(),
-                    duration: const Duration(milliseconds: 300),
-                  );
-                case '/account':
-                  return PageTransition(
-                    type: PageTransitionType.fade,
-                    child: const AccountScreen(),
-                    duration: const Duration(milliseconds: 300),
-                  );
-                default:
-                  return PageTransition(
-                    type: PageTransitionType.fade,
-                    child: const HomeScreen(),
-                    duration: const Duration(milliseconds: 300),
-                  );
-              }
-            },
-          );
+      child: MaterialApp(
+        title: 'Momentum App',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: ThemeMode.system,
+        home: const SplashScreen(), // Always start with splash screen
+        onGenerateRoute: (settings) {
+          switch (settings.name) {
+            case '/welcome':
+              return PageTransition(
+                type: PageTransitionType.fade,
+                child: const WelcomeScreen(),
+                duration: const Duration(milliseconds: 300),
+              );
+            case '/home':
+              return PageTransition(
+                type: PageTransitionType.fade,
+                child: const HomeScreen(),
+                duration: const Duration(milliseconds: 300),
+              );
+            case '/random_habit':
+              return PageTransition(
+                type: PageTransitionType.fade,
+                child: const RandomHabitScreen(),
+                duration: const Duration(milliseconds: 300),
+              );
+            case '/overview':
+              return PageTransition(
+                type: PageTransitionType.fade,
+                child: const OverviewScreen(),
+                duration: const Duration(milliseconds: 300),
+              );
+            case '/add_habit':
+              return PageTransition(
+                type: PageTransitionType.fade,
+                child: const AddHabitScreen(),
+                duration: const Duration(milliseconds: 300),
+              );
+            case '/timer':
+              return PageTransition(
+                type: PageTransitionType.fade,
+                child: const TimerScreen(),
+                duration: const Duration(milliseconds: 300),
+              );
+            case '/settings':
+              return PageTransition(
+                type: PageTransitionType.fade,
+                child: const SettingsScreen(),
+                duration: const Duration(milliseconds: 300),
+              );
+            case '/account':
+              return PageTransition(
+                type: PageTransitionType.fade,
+                child: const AccountScreen(),
+                duration: const Duration(milliseconds: 300),
+              );
+            default:
+              return PageTransition(
+                type: PageTransitionType.fade,
+                child: const HomeScreen(),
+                duration: const Duration(milliseconds: 300),
+              );
+          }
         },
       ),
     );

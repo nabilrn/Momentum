@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:momentum/core/theme/app_theme.dart';
+import 'package:momentum/presentation/pages/home_screen.dart';
 import 'package:momentum/presentation/pages/welcome_screen.dart';
 import 'package:momentum/presentation/widgets/momentum_logo.dart';
+import 'package:provider/provider.dart';
+import 'package:momentum/presentation/providers/auth_provider.dart';
+import 'package:momentum/presentation/controllers/habit_controller.dart';
+
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -14,6 +19,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
+  bool _isNavigating = false;
 
   @override
   void initState() {
@@ -40,19 +46,36 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     _controller.forward();
 
-    // Navigate to welcome screen after 2.5 seconds
+    // Navigate after showing splash screen for sufficient time
     Future.delayed(const Duration(milliseconds: 2500), () {
-      Navigator.pushReplacement(
-        context,
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => const WelcomeScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-          transitionDuration: const Duration(milliseconds: 800),
-        ),
-      );
+      if (mounted && !_isNavigating) {
+        _isNavigating = true;
+        _navigateToNextScreen();
+      }
     });
+  }
+
+  void _navigateToNextScreen() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final habitController = Provider.of<HabitController>(context, listen: false);
+
+    // Pre-load data if user is authenticated
+    if (authProvider.authService.isSignedIn) {
+      habitController.loadHabits();
+    }
+
+    // Navigate to appropriate screen based on auth state
+    Navigator.pushReplacement(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+        authProvider.authService.isSignedIn ? const HomeScreen() : const WelcomeScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 800),
+      ),
+    );
   }
 
   @override
@@ -91,10 +114,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
         ),
         child: Stack(
           children: [
-            // Background pattern (optional)
             if (isDarkMode) _buildBackgroundPattern(),
-
-            // Main content
             Center(
               child: FadeTransition(
                 opacity: _fadeAnimation,
@@ -103,7 +123,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Logo with soft shadow
                       Container(
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
@@ -118,8 +137,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                         child: const MomentumLogo(size: 140),
                       ),
                       const SizedBox(height: 24),
-
-                      // App name with larger font
                       Text(
                         'MOMENTUM',
                         style: TextStyle(
@@ -129,8 +146,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                           letterSpacing: 3,
                         ),
                       ),
-
-                      // Tagline
                       const SizedBox(height: 8),
                       Text(
                         'Build your future with habits',
@@ -140,8 +155,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                           letterSpacing: 0.5,
                         ),
                       ),
-
-                      // Loading indicator
                       const SizedBox(height: 40),
                       SizedBox(
                         width: 40,
@@ -165,16 +178,25 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   }
 
   Widget _buildBackgroundPattern() {
-    return Opacity(
-      opacity: 0.05,
-      child: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/pattern.png'),
-            repeat: ImageRepeat.repeat,
+    try {
+      return Opacity(
+        opacity: 0.05,
+        child: Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('lib/assets/world_map.png'),
+
+            ),
           ),
         ),
-      ),
-    );
-  }
-}
+      );
+    } catch (e) {
+      // Fallback if image is missing
+      return Opacity(
+        opacity: 0.05,
+        child: Container(
+          color: Colors.white.withOpacity(0.2),
+        ),
+      );
+    }
+  }}
