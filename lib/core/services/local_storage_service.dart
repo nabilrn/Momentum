@@ -1,78 +1,78 @@
 // lib/core/services/local_storage_service.dart
-import 'dart:convert';
-import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:momentum/data/models/habit_model.dart';
+import 'package:momentum/core/services/database_helper.dart';
+import 'dart:developer' as developer;
 
 class LocalStorageService {
-  static const String _habitsKey = 'user_habits';
+  static final DatabaseHelper _dbHelper = DatabaseHelper();
 
-  // Save habits to local storage
-  static Future<bool> saveHabits(List<HabitModel> habits, String userId) async {
+  static Future<void> saveHabits(String userId, List<HabitModel> habits) async {
+    developer.log('💾 Saving ${habits.length} habits to SQLite for user: $userId');
     try {
-      final prefs = await SharedPreferences.getInstance();
-
-      // Convert habits to list of maps, then to JSON string
-      final habitsJson = habits.map((habit) => habit.toMap()).toList();
-      final habitsString = jsonEncode(habitsJson);
-
-      // Store with user-specific key to handle multiple accounts
-      return await prefs.setString('${_habitsKey}_$userId', habitsString);
+      // First delete all habits for this user
+      await _dbHelper.deleteAllHabitsForUser(userId);
+      // Then insert all the new habits
+      await _dbHelper.insertHabits(habits);
+      developer.log('✅ Successfully saved habits to SQLite');
     } catch (e) {
-      debugPrint('❌ Error saving habits to local storage: $e');
-      return false;
+      developer.log('❌ Error saving habits to SQLite', error: e);
+      throw e;
     }
   }
 
-  // Get habits from local storage
   static Future<List<HabitModel>> getHabits(String userId) async {
+    developer.log('🔍 Getting habits for user: $userId');
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final habitsString = prefs.getString('${_habitsKey}_$userId');
-
-      if (habitsString == null) {
-        return [];
-      }
-
-      final habitsJson = jsonDecode(habitsString) as List;
-      return habitsJson
-          .map((habitMap) => HabitModel.fromMap(habitMap))
-          .toList();
+      final habits = await _dbHelper.getHabitsByUserId(userId);
+      developer.log('📚 Found ${habits.length} habits in SQLite');
+      return habits;
     } catch (e) {
-      debugPrint('❌ Error retrieving habits from local storage: $e');
+      developer.log('❌ Error getting habits from SQLite', error: e);
       return [];
     }
   }
 
-  // Clear habits from local storage
-  static Future<bool> clearHabits(String userId) async {
+  static Future<void> addHabit(HabitModel habit) async {
+    developer.log('➕ Adding habit to SQLite: ${habit.name}');
     try {
-      final prefs = await SharedPreferences.getInstance();
-      return await prefs.remove('${_habitsKey}_$userId');
+      await _dbHelper.insertHabit(habit);
+      developer.log('✅ Successfully added habit to SQLite');
     } catch (e) {
-      debugPrint('❌ Error clearing habits from local storage: $e');
-      return false;
+      developer.log('❌ Error adding habit to SQLite', error: e);
+      throw e;
     }
   }
 
-  // Get last sync timestamp
-  static Future<DateTime?> getLastSyncTime(String userId) async {
+  static Future<void> updateHabit(HabitModel habit) async {
+    developer.log('🔄 Updating habit in SQLite: ${habit.name}');
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final timestamp = prefs.getString('last_sync_$userId');
-      return timestamp != null ? DateTime.parse(timestamp) : null;
+      await _dbHelper.updateHabit(habit);
+      developer.log('✅ Successfully updated habit in SQLite');
     } catch (e) {
-      return null;
+      developer.log('❌ Error updating habit in SQLite', error: e);
+      throw e;
     }
   }
 
-  // Set last sync timestamp
-  static Future<bool> setLastSyncTime(String userId) async {
+  static Future<void> deleteHabit(String habitId) async {
+    developer.log('🗑️ Deleting habit from SQLite: $habitId');
     try {
-      final prefs = await SharedPreferences.getInstance();
-      return await prefs.setString('last_sync_$userId', DateTime.now().toIso8601String());
+      await _dbHelper.deleteHabit(habitId);
+      developer.log('✅ Successfully deleted habit from SQLite');
     } catch (e) {
-      return false;
+      developer.log('❌ Error deleting habit from SQLite', error: e);
+      throw e;
+    }
+  }
+
+  static Future<void> clearUserHabits(String userId) async {
+    developer.log('🧹 Clearing all habits for user: $userId');
+    try {
+      await _dbHelper.deleteAllHabitsForUser(userId);
+      developer.log('✅ Successfully cleared all habits for user');
+    } catch (e) {
+      developer.log('❌ Error clearing habits', error: e);
+      throw e;
     }
   }
 }

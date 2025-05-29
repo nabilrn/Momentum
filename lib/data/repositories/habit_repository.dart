@@ -1,10 +1,12 @@
+// lib/data/repositories/habit_repository.dart
 import 'package:flutter/material.dart';
 import 'package:momentum/data/datasources/supabase_datasource.dart';
 import 'package:momentum/data/models/habit_model.dart';
 import 'package:momentum/core/services/auth_service.dart';
 import 'package:momentum/core/services/local_storage_service.dart';
+import 'package:momentum/core/services/fcm_service.dart'; // Changed to FCMService
 import 'dart:developer' as developer;
-import 'package:momentum/core/services/notification_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HabitRepository {
   final SupabaseDataSource _dataSource;
@@ -52,15 +54,13 @@ class HabitRepository {
       // Save to database
       final result = await _dataSource.createHabit(habit);
 
-      // After successful creation, update local cache
-      final localHabits = await LocalStorageService.getHabits(userId);
-      localHabits.add(result);
-      await LocalStorageService.saveHabits(localHabits, userId);
-      await LocalStorageService.setLastSyncTime(userId);
+      // After successful creation, add to local SQLite database
+      await LocalStorageService.addHabit(result);
 
-      final isEnabled = await NotificationService.areNotificationsEnabled();
+      // Update notifications if enabled - using FCMService now
+      final isEnabled = await FCMService.areNotificationsEnabled();
       if (isEnabled) {
-        await NotificationService.scheduleHabitReminders(userId);
+        await FCMService.scheduleHabitReminders(userId);
       }
 
       return result;
@@ -88,16 +88,16 @@ class HabitRepository {
         final habits = await _dataSource.getHabitsForUser(userId);
         developer.log('Retrieved ${habits.length} habits from Supabase');
 
-        // Update local storage with fresh data
-        await LocalStorageService.saveHabits(habits, userId);
-        await LocalStorageService.setLastSyncTime(userId);
+        // Update local SQLite database with fresh data
+        await LocalStorageService.saveHabits(userId, habits);
+        await _updateLastSyncTime(userId);
 
         return habits;
       } catch (e) {
-        // If Supabase fetch fails, try to get habits from local storage
-        developer.log('Error fetching from Supabase, trying local storage', error: e);
+        // If Supabase fetch fails, try to get habits from local SQLite
+        developer.log('Error fetching from Supabase, trying local SQLite', error: e);
         final localHabits = await LocalStorageService.getHabits(userId);
-        developer.log('Retrieved ${localHabits.length} habits from local storage');
+        developer.log('Retrieved ${localHabits.length} habits from local SQLite');
 
         if (localHabits.isEmpty) {
           // If local storage is also empty, rethrow the original exception
@@ -130,14 +130,14 @@ class HabitRepository {
 
       final updatedHabit = await _dataSource.updateHabit(habit);
 
-      // Update the habit in local storage
-      final localHabits = await LocalStorageService.getHabits(userId);
-      final index = localHabits.indexWhere((h) => h.id == habit.id);
+      // Update the habit in local SQLite
+      await LocalStorageService.updateHabit(updatedHabit);
+      await _updateLastSyncTime(userId);
 
-      if (index != -1) {
-        localHabits[index] = updatedHabit;
-        await LocalStorageService.saveHabits(localHabits, userId);
-        await LocalStorageService.setLastSyncTime(userId);
+      // Update notifications using FCMService
+      final isEnabled = await FCMService.areNotificationsEnabled();
+      if (isEnabled) {
+        await FCMService.scheduleHabitReminders(userId);
       }
 
       return updatedHabit;
@@ -159,11 +159,15 @@ class HabitRepository {
 
       await _dataSource.deleteHabit(habitId);
 
-      // Also remove from local storage
-      final localHabits = await LocalStorageService.getHabits(userId);
-      final updatedHabits = localHabits.where((h) => h.id != habitId).toList();
-      await LocalStorageService.saveHabits(updatedHabits, userId);
-      await LocalStorageService.setLastSyncTime(userId);
+      // Also remove from local SQLite
+      await LocalStorageService.deleteHabit(habitId);
+      await _updateLastSyncTime(userId);
+
+      // Update notifications using FCMService
+      final isEnabled = await FCMService.areNotificationsEnabled();
+      if (isEnabled) {
+        await FCMService.scheduleHabitReminders(userId);
+      }
 
       developer.log('Habit deleted successfully');
     } catch (e, stackTrace) {
@@ -172,16 +176,47 @@ class HabitRepository {
     }
   }
 
-  // Check if data needs syncing (optional method)
+  // Check if data needs syncing
   Future<bool> needsSync() async {
     final userId = _authService.currentUser?.id;
     if (userId == null) return false;
 
-    final lastSync = await LocalStorageService.getLastSyncTime(userId);
+    final lastSync = await _getLastSyncTime(userId);
     if (lastSync == null) return true;
 
     // Sync if last sync was more than 30 minutes ago
     final thirtyMinutesAgo = DateTime.now().subtract(const Duration(minutes: 30));
     return lastSync.isBefore(thirtyMinutesAgo);
+  }
+
+  // Helper methods for sync time management
+  Future<void> _updateLastSyncTime(String userId) async {
+    // Store in SharedPreferences since it's just a timestamp
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('last_sync_$userId', DateTime.now().toIso8601String());
+  }
+
+  Future<DateTime?> _getLastSyncTime(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final timeString = prefs.getString('last_sync_$userId');
+    if (timeString == null) return null;
+    return DateTime.parse(timeString);
+  }
+
+  // Add a dedicated method to refresh notifications
+  Future<void> refreshNotifications() async {
+    final userId = _authService.currentUser?.id;
+    if (userId == null) {
+      throw Exception('User not authenticated');
+    }
+
+    final isEnabled = await FCMService.areNotificationsEnabled();
+    if (isEnabled) {
+      await FCMService.scheduleHabitReminders(userId);
+      developer.log('Notifications refreshed for user: $userId');
+    } else {
+      await FCMService.clearAllNotifications();
+      developer.log('Notifications cleared - disabled in settings');
+    }
   }
 }

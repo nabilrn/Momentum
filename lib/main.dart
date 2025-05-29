@@ -15,15 +15,20 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:momentum/presentation/providers/auth_provider.dart';
 import 'package:momentum/presentation/controllers/habit_controller.dart';
-import 'package:momentum/core/services/notification_service.dart';
+import 'package:momentum/core/services/database_helper.dart';
+import 'package:momentum/core/services/fcm_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await SupabaseService.initialize();
 
-  // Initialize notification service
-  await NotificationService.initialize();
+  final dbHelper = DatabaseHelper();
+  await dbHelper.database;
+
+  // Replace this line:
+  // await NotificationService.initialize();
+  await FCMService.initialize();
 
   runApp(const MomentumApp());
 }

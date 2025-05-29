@@ -1,6 +1,9 @@
 // lib/core/services/notification_service.dart
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -8,19 +11,29 @@ import 'package:timezone/data/latest.dart' as tz_init;
 import 'dart:developer' as developer;
 import 'package:momentum/core/services/local_storage_service.dart';
 import 'package:momentum/data/models/habit_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin =
   FlutterLocalNotificationsPlugin();
+  static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  static final SupabaseClient _supabaseClient = Supabase.instance.client;
 
   static const String _reminderEnabledKey = 'habit_reminders_enabled';
   static const String _notificationChannelId = 'habit_reminders';
   static const String _notificationChannelName = 'Habit Reminders';
   static const String _notificationChannelDescription = 'Notifications for habit reminders';
 
+  static bool _initialized = false;
+
   // Initialize notification service
   static Future<void> initialize() async {
+    if (_initialized) return;
+
     developer.log('🔔 Initializing NotificationService');
+
+    // Initialize Firebase
+    await Firebase.initializeApp();
 
     tz_init.initializeTimeZones();
 
@@ -51,10 +64,27 @@ class NotificationService {
     // Create notification channel for Android 8.0+
     await _createNotificationChannel();
 
+    // Configure FCM foreground notification presentation
+    await _messaging.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    // Handle background/terminated messages
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+    // Handle foreground messages
+    FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+
+    // Handle notification tap when app is in background
+    FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
+
+    _initialized = true;
     developer.log('✅ NotificationService initialized successfully');
   }
 
-// Create the notification channel for Android
+  // Create the notification channel for Android
   static Future<void> _createNotificationChannel() async {
     final AndroidFlutterLocalNotificationsPlugin? androidPlugin =
     _notificationsPlugin.resolvePlatformSpecificImplementation<
@@ -67,8 +97,6 @@ class NotificationService {
           _notificationChannelName,
           description: _notificationChannelDescription,
           importance: Importance.high,
-          enableVibration: true,
-          enableLights: true,
         ),
       );
       developer.log('✅ Created notification channel: $_notificationChannelId');
@@ -81,30 +109,148 @@ class NotificationService {
     // You can add navigation or other actions here
   }
 
+  static void _handleNotificationTap(RemoteMessage message) {
+    developer.log('👆 Background notification tapped: ${message.messageId}');
+    // Handle navigation based on notification data
+  }
+
+  static Future<void> _handleForegroundMessage(RemoteMessage message) async {
+    developer.log('📲 Foreground message received: ${message.messageId}');
+
+    final notification = message.notification;
+    final data = message.data;
+
+    if (notification != null) {
+      await _notificationsPlugin.show(
+        notification.hashCode,
+        notification.title,
+        notification.body,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            _notificationChannelId,
+            _notificationChannelName,
+            channelDescription: _notificationChannelDescription,
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+          iOS: const DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
+        ),
+        payload: jsonEncode(data),
+      );
+    }
+  }
+
   // Request notification permissions
   static Future<bool> requestPermissions(BuildContext context) async {
     developer.log('🔔 Requesting notification permissions');
 
+    // Request FCM permissions first
+    NotificationSettings fcmSettings = await _messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+      provisional: false,
+    );
+
+    bool fcmPermissionGranted = fcmSettings.authorizationStatus == AuthorizationStatus.authorized ||
+        fcmSettings.authorizationStatus == AuthorizationStatus.provisional;
+
+    if (!fcmPermissionGranted) {
+      developer.log('❌ FCM permissions denied');
+      return false;
+    }
+
+    // Platform specific permissions
     if (Theme.of(context).platform == TargetPlatform.android) {
       // For Android 13+ (SDK 33+), request POST_NOTIFICATIONS permission
       if (await Permission.notification.status.isDenied) {
         final status = await Permission.notification.request();
-        developer.log('📱 Android notification permission status: ${status.toString()}');
-        return status.isGranted;
+        final granted = status.isGranted;
+        developer.log('📱 Android notification permission granted: $granted');
+
+        // Register device token if permissions granted
+        if (granted) {
+          await registerDeviceToken();
+        }
+
+        return granted;
       }
+
+      await registerDeviceToken();
       return true;
     } else {
       final result = await _notificationsPlugin
-          .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
+          .resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin>()
           ?.requestPermissions(
         alert: true,
         badge: true,
         sound: true,
       );
+
       developer.log('📱 iOS notification permission status: ${result.toString()}');
+
+      // Register device token if permissions granted
+      if (result == true) {
+        await registerDeviceToken();
+      }
+
       return result ?? false;
     }
   }
+
+  // Register device token with Supabase
+  static Future<void> registerDeviceToken() async {
+    try {
+      final token = await _messaging.getToken();
+      if (token != null) {
+        await _saveTokenToSupabase(token);
+      }
+
+      // Listen for token refreshes
+      _messaging.onTokenRefresh.listen(_saveTokenToSupabase);
+    } catch (e) {
+      developer.log('❌ Error registering device token', error: e);
+    }
+  }
+
+  static Future<void> _saveTokenToSupabase(String token) async {
+    try {
+      final userId = _supabaseClient.auth.currentUser?.id;
+      if (userId == null) {
+        developer.log('⚠️ Cannot save FCM token: User not authenticated');
+        return;
+      }
+
+      developer.log('💾 Saving FCM token to Supabase: ${token.substring(0, 10)}...');
+
+      // Save token to device_tokens table
+      await _supabaseClient.from('device_tokens').upsert({
+        'user_id': userId,
+        'token': token,
+        'platform': _getPlatformName(),
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      }, onConflict: 'user_id, token');
+
+      developer.log('✅ FCM token saved to Supabase');
+    } catch (e) {
+      developer.log('❌ Error saving FCM token: $e');
+    }
+  }
+
+  static String _getPlatformName() {
+    if (Theme.of(currentContext!).platform == TargetPlatform.android) return 'android';
+    if (Theme.of(currentContext!).platform == TargetPlatform.iOS) return 'ios';
+    return 'unknown';
+  }
+
+  // Keep track of current BuildContext
+  static BuildContext? currentContext;
 
   // Check if notifications are enabled in app settings
   static Future<bool> areNotificationsEnabled() async {
@@ -118,6 +264,21 @@ class NotificationService {
   static Future<bool> setNotificationsEnabled(bool value) async {
     developer.log('🔔 Setting notifications enabled to: $value');
     SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    // If enabling notifications, register the device token
+    if (value) {
+      await registerDeviceToken();
+
+      // Schedule reminders for current user
+      final userId = _supabaseClient.auth.currentUser?.id;
+      if (userId != null) {
+        await scheduleHabitReminders(userId);
+      }
+    } else {
+      // Cancel all scheduled notifications
+      await cancelAllNotifications();
+    }
+
     return prefs.setBool(_reminderEnabledKey, value);
   }
 
@@ -144,67 +305,63 @@ class NotificationService {
       int scheduledCount = 0;
 
       for (final habit in habits) {
-        // Debug information for each habit
-        developer.log('Processing habit: ${habit.name}, startTime: ${habit.startTime}');
+        if (habit.startTime != null) {
+          final timeParts = habit.startTime!.split(':');
+          if (timeParts.length == 2) {
+            final hour = int.tryParse(timeParts[0]) ?? 0;
+            final minute = int.tryParse(timeParts[1]) ?? 0;
 
-        // Skip habits without start time
-        if (habit.startTime == null || habit.startTime!.isEmpty) {
-          developer.log('⏩ Skipping habit "${habit.name ?? "Unnamed"}" - No start time set');
-          continue;
-        }
+            // Calculate time for 5 minutes before habit starts
+            final reminderMinute = minute >= 5 ? minute - 5 : (minute + 60 - 5);
+            final reminderHour = minute >= 5 ? hour : (hour == 0 ? 23 : hour - 1);
 
-        try {
-          final startTimeParts = habit.startTime!.split(':');
-          // Check for valid time format (should be HH:MM or HH:MM:SS)
-          if (startTimeParts.length < 2) {
-            developer.log('⚠️ Invalid start time format for habit: ${habit.name ?? "Unnamed"} - Format: ${habit.startTime}');
-            continue;
+            final now = tz.TZDateTime.now(tz.local);
+            var scheduledDate = tz.TZDateTime(
+              tz.local,
+              now.year,
+              now.month,
+              now.day,
+              reminderHour,
+              reminderMinute,
+            );
+
+            // If time already passed today, schedule for tomorrow
+            if (scheduledDate.isBefore(now)) {
+              scheduledDate = scheduledDate.add(const Duration(days: 1));
+            }
+
+            await _scheduleHabitReminder(
+              id: habit.id.hashCode,
+              title: "It's almost time for ${habit.name}!",
+              body: "Your ${habit.priority} priority habit starts in 5 minutes.",
+              scheduledDate: scheduledDate,
+              habit: habit,
+            );
+
+            scheduledCount++;
+            developer.log('📅 Scheduled reminder for "${habit.name}" at ${reminderHour.toString().padLeft(2, '0')}:${reminderMinute.toString().padLeft(2, '0')}');
           }
-
-          // Take only hours and minutes, ignore seconds if present
-          final hour = int.parse(startTimeParts[0]);
-          final minute = int.parse(startTimeParts[1].split(':').first);
-
-          // Calculate notification time (15 minutes before start)
-          final reminderMinute = minute >= 15 ? minute - 15 : (minute + 60 - 15);
-          final reminderHour = minute >= 15 ? hour : (hour == 0 ? 23 : hour - 1);
-
-          // Create proper TZDateTime for the reminder
-          final now = tz.TZDateTime.now(tz.local);
-          var scheduledDate = tz.TZDateTime(
-            tz.local,
-            now.year,
-            now.month,
-            now.day,
-            reminderHour,
-            reminderMinute,
-          );
-
-          // If the time is in the past, schedule for tomorrow
-          if (scheduledDate.isBefore(now)) {
-            scheduledDate = scheduledDate.add(const Duration(days: 1));
-          }
-
-          final habitId = habit.id?.hashCode ?? habit.name.hashCode;
-
-          await _scheduleHabitReminder(
-            id: habitId,
-            title: "It's almost time for ${habit.name}!",
-            body: "Your ${habit.priority} priority habit starts in 15 minutes.",
-            scheduledDate: scheduledDate,
-            habit: habit,
-          );
-
-          scheduledCount++;
-          developer.log('✅ Scheduled notification for habit: ${habit.name} at ${scheduledDate.toString()}');
-        } catch (e) {
-          developer.log('❌ Error scheduling notification for habit: ${habit.name ?? "Unnamed"}', error: e);
         }
       }
 
       developer.log('✅ Successfully scheduled $scheduledCount notifications');
+
+      // Invoke server-side scheduling as backup
+      await _triggerServerSideReminders(userId);
+
     } catch (e) {
       developer.log('❌ Error scheduling habit reminders', error: e);
+    }
+  }
+
+  // Trigger server-side reminders as a backup
+  static Future<void> _triggerServerSideReminders(String userId) async {
+    try {
+      await _supabaseClient.functions.invoke('habit-reminders',
+          body: {'user_id': userId});
+      developer.log('🔄 Triggered server-side reminders for user');
+    } catch (e) {
+      developer.log('⚠️ Failed to trigger server-side reminders', error: e);
     }
   }
 
@@ -250,8 +407,8 @@ class NotificationService {
     await _notificationsPlugin.cancelAll();
   }
 
-  // Add to NotificationService
-  static Future<void> showDebugNotification() async {
+  // Debugging
+  static Future<void> showTestNotification() async {
     const notificationDetails = NotificationDetails(
       android: AndroidNotificationDetails(
         _notificationChannelId,
@@ -268,11 +425,17 @@ class NotificationService {
     );
 
     await _notificationsPlugin.show(
-      999,
-      "Test Notification",
-      "This is a test notification",
+      0,
+      'Test Notification',
+      'This is a test notification from Momentum',
       notificationDetails,
     );
-    developer.log('🔔 Debug notification sent');
   }
+}
+
+// This top-level function is required for FCM background handling
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  developer.log('📲 Background message received: ${message.messageId}');
 }

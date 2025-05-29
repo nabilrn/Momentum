@@ -5,7 +5,7 @@ import '../widgets/settings/sections/appearance_section.dart';
 import '../widgets/settings/sections/notifications_section.dart';
 import '../widgets/settings/sections/account_section.dart';
 import '../widgets/settings/sections/about_section.dart';
-import 'package:momentum/core/services/notification_service.dart';
+import 'package:momentum/core/services/fcm_service.dart'; // Changed to FCMService
 import 'package:momentum/core/services/auth_service.dart';
 import 'package:provider/provider.dart';
 import 'package:momentum/presentation/providers/auth_provider.dart';
@@ -46,7 +46,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   }
 
   Future<void> _loadNotificationPreferences() async {
-    final enabled = await NotificationService.areNotificationsEnabled();
+    final enabled = await FCMService.areNotificationsEnabled();
     setState(() {
       _notificationsEnabled = enabled;
     });
@@ -70,7 +70,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   void _handleNotificationChanged(bool value) async {
     if (value) {
       // When enabling notifications
-      final hasPermission = await NotificationService.requestPermissions(context);
+      final hasPermission = await FCMService.requestPermissions(context);
       if (hasPermission) {
         // Update UI state
         setState(() {
@@ -78,12 +78,12 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         });
 
         // Save the preference
-        await NotificationService.setNotificationsEnabled(value);
+        await FCMService.setNotificationsEnabled(value);
 
         // Schedule notifications for current user
         final userId = _authService.currentUser?.id;
         if (userId != null) {
-          await NotificationService.scheduleHabitReminders(userId);
+          await FCMService.scheduleHabitReminders(userId);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Habit reminders turned on'))
@@ -106,8 +106,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       setState(() {
         _notificationsEnabled = value;
       });
-      await NotificationService.setNotificationsEnabled(false);
-      await NotificationService.cancelAllNotifications();
+      await FCMService.setNotificationsEnabled(false);
+      await FCMService.clearAllNotifications();  // Changed to match FCMService method name
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Habit reminders turned off'))
@@ -118,6 +118,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
+    // Rest of the build method remains unchanged
     final isDarkMode = AppTheme.isDarkMode(context);
     final primaryColor = const Color(0xFF4B6EFF);
     final backgroundColor = isDarkMode ? const Color(0xFF121117) : Colors.white;

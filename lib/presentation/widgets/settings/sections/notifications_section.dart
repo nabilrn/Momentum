@@ -1,7 +1,5 @@
+// lib/presentation/widgets/settings/sections/notifications_section.dart
 import 'package:flutter/material.dart';
-import 'package:momentum/core/services/notification_service.dart';
-import 'package:provider/provider.dart';
-import 'package:momentum/presentation/providers/auth_provider.dart';
 
 class NotificationsSection extends StatelessWidget {
   final bool isDarkMode;
@@ -13,7 +11,7 @@ class NotificationsSection extends StatelessWidget {
   final Function(bool) onNotificationChanged;
 
   const NotificationsSection({
-    super.key,
+    Key? key,
     required this.isDarkMode,
     required this.textColor,
     required this.subtitleColor,
@@ -21,47 +19,90 @@ class NotificationsSection extends StatelessWidget {
     required this.cardColor,
     required this.notificationsEnabled,
     required this.onNotificationChanged,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: cardColor,
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Notifications',
-              style: TextStyle(
-                color: textColor,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(
-                'Habit Reminders',
-                style: TextStyle(color: textColor),
-              ),
-              subtitle: Text(
-                'Get notified 15 minutes before a habit starts',
-                style: TextStyle(color: subtitleColor),
-              ),
-              trailing: Switch(
-                value: notificationsEnabled,
-                activeColor: primaryColor,
-                onChanged: onNotificationChanged,
-              ),
-            ),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Notifications',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: textColor,
+          ),
         ),
-      ),
+        const SizedBox(height: 16),
+        Container(
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: isDarkMode
+                ? []
+                : [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                spreadRadius: 0,
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                _buildSwitchTile(
+                  title: 'Habit Reminders',
+                  subtitle: 'Get notified 5 minutes before a habit starts',
+                  value: notificationsEnabled,
+                  onChanged: (value) {
+                    onNotificationChanged(value);
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSwitchTile({
+    required String title,
+    required String subtitle,
+    required bool value,
+    required Function(bool) onChanged,
+  }) {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: textColor,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: TextStyle(color: subtitleColor, fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+        Switch.adaptive(
+          value: value,
+          activeColor: primaryColor,
+          onChanged: onChanged,
+        ),
+      ],
     );
   }
 }
