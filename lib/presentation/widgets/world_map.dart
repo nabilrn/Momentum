@@ -9,7 +9,7 @@ class WorldMap extends StatelessWidget {
       width: double.infinity,
       height: 200,
       child: Image.asset(
-        'lib/assets/world_map.png',
+        'assets/images/world_map.png',
         fit: BoxFit.contain,
       ),
     );

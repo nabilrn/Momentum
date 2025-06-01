@@ -55,7 +55,7 @@ class NotificationsSection extends StatelessWidget {
               children: [
                 _buildSwitchTile(
                   title: 'Habit Reminders',
-                  subtitle: 'Get notified 5 minutes before a habit starts',
+                  subtitle: 'Get notified 3 minutes before a habit starts',
                   value: notificationsEnabled,
                   onChanged: (value) {
                     onNotificationChanged(value);

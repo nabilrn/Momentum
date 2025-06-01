@@ -14,7 +14,7 @@ class MomentumLogo extends StatelessWidget {
       width: size,
       height: size,
       child: Image.asset(
-        'lib/assets/momentum_logo.png',
+        'assets/images/momentum_logo.png',
         fit: BoxFit.contain,
       ),
     )
@@ -22,7 +22,7 @@ class MomentumLogo extends StatelessWidget {
       width: double.infinity,
       height: 200,
       child: Image.asset(
-        'lib/assets/momentum_logo.png',
+        'assets/images/momentum_logo.png',
         fit: BoxFit.contain,
       ),
     );

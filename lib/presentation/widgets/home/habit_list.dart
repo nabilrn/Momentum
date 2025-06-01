@@ -196,19 +196,7 @@ class _HabitListState extends State<HabitList> {
 
   void _handleHabitDeletion(String habitId, String habitName) {
     widget.habitController.deleteHabit(habitId).then((_) {
-      // Show snackbar on successful deletion
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("$habitName deleted"),
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.only(
-            bottom: 80.0,
-            left: 10.0,
-            right: 10.0,
-          ),
-        ),
-      );
-      // Remove from dismissed IDs after successful deletion
+
       setState(() {
         _dismissedHabitIds.remove(habitId);
       });

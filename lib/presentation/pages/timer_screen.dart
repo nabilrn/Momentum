@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:just_audio/just_audio.dart' as audio;
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import 'package:momentum/data/models/habit_model.dart';
@@ -11,8 +12,9 @@ import '../widgets/timer/timer_controls.dart';
 import '../utils/color_util_random.dart';
 import 'package:momentum/core/services/habit_completion_service.dart';
 import 'package:momentum/data/datasources/supabase_datasource.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:audioplayers/audioplayers.dart';
+
 
 class TimerScreen extends StatefulWidget {
   final String? habitId;
@@ -39,7 +41,7 @@ class _TimerScreenState extends State<TimerScreen> with TickerProviderStateMixin
   late Animation<double> _completionAnimation;
 
   // Sound and notification variables
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  final _audioPlayer = audio.AudioPlayer();
   final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
 
   @override
@@ -188,16 +190,15 @@ class _TimerScreenState extends State<TimerScreen> with TickerProviderStateMixin
     _completionController.forward();
   }
 
-  // Play alarm sound when timer completes
   Future<void> _playAlarmSound() async {
     try {
-      // You'll need to add alarm.mp3 file to your assets/audio folder
-      await _audioPlayer.play(AssetSource('audio/alarm.mp3'));
+      await _audioPlayer.setAsset('assets/audio/alarm.mp3');
+      await _audioPlayer.setVolume(1.0);
+      await _audioPlayer.play();
     } catch (e) {
       debugPrint('Error playing sound: $e');
     }
   }
-
   // Show a local notification when timer completes
   Future<void> _showCompletionNotification() async {
     const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
@@ -226,6 +227,8 @@ class _TimerScreenState extends State<TimerScreen> with TickerProviderStateMixin
       details,
     );
   }
+
+
 
   @override
   Widget build(BuildContext context) {

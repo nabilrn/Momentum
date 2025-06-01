@@ -63,20 +63,27 @@ class FCMService {
     // Handle notification tap when app is in background
     FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
 
-    // Get token and save to Supabase
-    final token = await _messaging.getToken();
-    if (token != null) {
-      await _saveTokenToSupabase(token);
-    }
+    // Note: We're not saving token here anymore - we'll do it after login
 
     // Listen for token refreshes
-    _messaging.onTokenRefresh.listen(_saveTokenToSupabase);
+    _messaging.onTokenRefresh.listen((token) {
+      // Only save if user is authenticated
+      if (_supabaseClient.auth.currentUser != null) {
+        _saveTokenToSupabase(token);
+      }
+    });
+
+    // Listen for auth state changes to handle token registration
+    _supabaseClient.auth.onAuthStateChange.listen((event) {
+      if (event.event == AuthChangeEvent.signedIn) {
+        registerTokenAfterLogin();
+      }
+    });
 
     _initialized = true;
     developer.log('FCM Service initialized');
   }
 
-  // NEW METHOD: Save user notification preference
   static Future<void> setNotificationsEnabled(bool enabled) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -98,7 +105,6 @@ class FCMService {
     }
   }
 
-  // UPDATED METHOD: Check both permission and user preference
   static Future<bool> areNotificationsEnabled() async {
     try {
       // First check if the user has enabled notifications in preferences
@@ -118,7 +124,6 @@ class FCMService {
     }
   }
 
-  // NEW METHOD: Request permissions with BuildContext parameter
   static Future<bool> requestPermissions(BuildContext context) async {
     try {
       NotificationSettings settings = await _messaging.requestPermission(
@@ -153,16 +158,17 @@ class FCMService {
         return;
       }
 
+      developer.log('Saving FCM token to Supabase for user: $userId');
+
       // Save token to device_tokens table
       await _supabaseClient.from('device_tokens').upsert({
         'user_id': userId,
         'token': token,
         'platform': defaultTargetPlatform.toString(),
-        'created_at': DateTime.now().toIso8601String(),
         'updated_at': DateTime.now().toIso8601String(),
       }, onConflict: 'user_id, token');
 
-      developer.log('FCM token saved to Supabase');
+      developer.log('FCM token saved to Supabase successfully');
     } catch (e) {
       developer.log('Error saving FCM token: $e');
     }
@@ -213,7 +219,6 @@ class FCMService {
 
       final res = await _supabaseClient.functions.invoke('habit-reminders', body: {'user_id': userId});
 
-      // Check the status code instead of error property
       if (res.status != 200) {
         developer.log('Error from habit-reminders function: ${res.status}, details: ${res.data}');
       } else {
@@ -240,6 +245,29 @@ class FCMService {
       developer.log('All notifications cleared');
     } catch (e) {
       developer.log('Error clearing notifications: $e');
+    }
+  }
+
+  // Register FCM token after login
+  static Future<void> registerTokenAfterLogin() async {
+    try {
+      final userId = _supabaseClient.auth.currentUser?.id;
+      if (userId == null) {
+        developer.log('Cannot register FCM token: User not authenticated');
+        return;
+      }
+
+      developer.log('Registering FCM token after login for user: $userId');
+      final token = await _messaging.getToken();
+
+      if (token != null) {
+        await _saveTokenToSupabase(token);
+        developer.log('FCM token registration successful');
+      } else {
+        developer.log('Unable to get FCM token');
+      }
+    } catch (e) {
+      developer.log('Error registering FCM token after login: $e');
     }
   }
 }

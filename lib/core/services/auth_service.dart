@@ -1,9 +1,11 @@
+// lib/core/services/auth_service.dart
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:momentum/core/services/supabase_service.dart';
+import 'package:momentum/core/services/fcm_service.dart';
 import 'dart:async';
 
 class AuthService {
@@ -147,17 +149,6 @@ class AuthService {
         '⚠️ AuthService: Failed to sign out from previous Google session: $e',
       );
     }
-
-    // Optionally clear Supabase session if needed
-    // Uncomment if you want to force Supabase signout as well
-    /*
-    try {
-      await _supabaseClient.auth.signOut(scope: SignOutScope.local);
-      debugPrint('🔐 AuthService: Successfully signed out from previous Supabase session');
-    } catch (e) {
-      debugPrint('⚠️ AuthService: Failed to sign out from previous Supabase session: $e');
-    }
-    */
   }
 
   // Web sign-in method wrapper (uses the GIS approach)
@@ -264,6 +255,10 @@ class AuthService {
       );
 
       debugPrint('✅ AuthService: Supabase sign-in successful with ID token only');
+
+      // Register FCM token after successful login
+      await FCMService.registerTokenAfterLogin();
+
       return response;
     } else if (accessToken == null) {
       // For mobile platforms, still require access token
@@ -283,6 +278,10 @@ class AuthService {
     );
 
     debugPrint('✅ AuthService: Supabase sign-in successful');
+
+    // Register FCM token after successful login
+    await FCMService.registerTokenAfterLogin();
+
     return response;
   }
 

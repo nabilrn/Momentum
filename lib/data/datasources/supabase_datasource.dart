@@ -159,6 +159,28 @@ class SupabaseDataSource {
       rethrow;
     }
   }
+  // Add to your SupabaseDataSource class
+  Future<List<HabitCompletionsModel>> getHabitCompletions({
+    required String habitId,
+    required String startDate,
+    required String endDate
+  }) async {
+    try {
+      final response = await _client
+          .from(_habitCompletionsTable)
+          .select()
+          .eq('habit_id', habitId)
+          .gte('completion_date', startDate)
+          .lt('completion_date', endDate);
+
+      return (response as List)
+          .map((item) => HabitCompletionsModel.fromMap(item))
+          .toList();
+    } catch (e) {
+      debugPrint('❌ Error fetching habit completions by date range: $e');
+      rethrow;
+    }
+  }
 
 
 }

@@ -211,7 +211,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
             : BoxDecoration(
           color: AppTheme.lightWelcomeBackgroundColor,
           image: DecorationImage(
-            image: const AssetImage('lib/assets/light_pattern.png'),
+            image: const AssetImage('assets/images/light_pattern.png'),
             opacity: 0.05,
             repeat: ImageRepeat.repeat,
           ),
@@ -444,7 +444,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         ),
                       )
                           : Image.asset(
-                        'lib/assets/google_logo.png',
+                        'assets/images/google_logo.png',
                         height: 20,
                         width: 20,
                       ),
@@ -537,7 +537,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                     ),
                   )
                       : Image.asset(
-                    'lib/assets/google_logo.png',
+                    'assets/images/google_logo.png',
                     height: 20,
                     width: 20,
                   ),
