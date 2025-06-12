@@ -15,12 +15,12 @@ class HabitController extends ChangeNotifier {
   List<HabitModel> _habits = [];
   final Map<String, List<HabitCompletionsModel>> _habitCompletions = {};
 
-
   // Getters
   bool get isLoading => _isLoading;
   String? get error => _error;
   List<HabitModel> get habits => _habits;
-  Map<String, List<HabitCompletionsModel>> get habitCompletions => _habitCompletions;
+  Map<String, List<HabitCompletionsModel>> get habitCompletions =>
+      _habitCompletions;
 
   String _titleFilter = '';
   List<String> _timeFilters = [];
@@ -99,30 +99,33 @@ class HabitController extends ChangeNotifier {
     }
   }
 
-// In habit_controller.dart, replace the filteredHabits getter with:
+  // Filter habits based on title and time
   List<HabitModel> get filteredHabits {
     return _habits.where((habit) {
       // Title filter
-      final nameMatches = _titleFilter.isEmpty ||
-          (habit.name.toLowerCase()).contains(_titleFilter.toLowerCase());
+      final nameMatches =
+          _titleFilter.isEmpty ||
+          habit.name.toLowerCase().contains(_titleFilter.toLowerCase());
 
       // Time filter
       bool timeMatches = _timeFilters.isEmpty;
       if (!timeMatches && habit.startTime != null) {
         try {
-          final timeStr = habit.startTime ?? "";
+          final timeStr = habit.startTime!;
           if (timeStr.isNotEmpty) {
             final hourStr = timeStr.split(':')[0];
             final hour = int.tryParse(hourStr) ?? 0;
 
             if (_timeFilters.contains('Morning') && hour >= 5 && hour < 12) {
               timeMatches = true;
-            } else if (_timeFilters.contains('Evening') && hour >= 17 && hour < 22) {
+            } else if (_timeFilters.contains('Evening') &&
+                hour >= 17 &&
+                hour < 22) {
               timeMatches = true;
             }
           }
         } catch (e) {
-          print("Error parsing time: $e");
+          debugPrint("Error parsing time: $e");
         }
       }
 
@@ -139,7 +142,7 @@ class HabitController extends ChangeNotifier {
     }
   }
 
-// Update an existing habit
+  // Update an existing habit
   Future<HabitModel?> updateHabit(HabitModel habit) async {
     try {
       _isLoading = true;
@@ -165,15 +168,14 @@ class HabitController extends ChangeNotifier {
       return null;
     }
   }
+
   Future<void> loadHabitCompletions() async {
     try {
       _habitCompletions.clear();
 
       for (final habit in _habits) {
-        if (habit.id != null) {
-          final completions = await _dataSource.getCompletionsByHabitId(habit.id!);
-          _habitCompletions[habit.id!] = completions;
-        }
+        final completions = await _dataSource.getCompletionsByHabitId(habit.id);
+        _habitCompletions[habit.id] = completions;
       }
 
       notifyListeners();
@@ -181,6 +183,7 @@ class HabitController extends ChangeNotifier {
       debugPrint('Error loading habit completions: $e');
     }
   }
+
   Future<void> loadHabitsWithCompletions() async {
     try {
       _isLoading = true;
@@ -201,7 +204,11 @@ class HabitController extends ChangeNotifier {
       notifyListeners();
     }
   }
-  List<HabitCompletionsModel> getCompletionsForDate(String habitId, DateTime date) {
+
+  List<HabitCompletionsModel> getCompletionsForDate(
+    String habitId,
+    DateTime date,
+  ) {
     final completions = _habitCompletions[habitId] ?? [];
     return completions.where((completion) {
       return completion.completionDate.year == date.year &&
@@ -216,7 +223,7 @@ class HabitController extends ChangeNotifier {
     int streak = 0;
     DateTime currentDate = DateTime.now();
 
-    // Cek dari hari ini mundur ke belakang
+    // Check from today backwards
     while (true) {
       final DateTime checkDate = DateTime(
         currentDate.year,
@@ -226,14 +233,12 @@ class HabitController extends ChangeNotifier {
 
       bool hasAnyCompletion = false;
 
-      // Cek apakah ada habit yang diselesaikan di hari ini
+      // Check if any habit was completed on this day
       for (final habit in _habits) {
-        if (habit.id != null) {
-          final completions = getCompletionsForDate(habit.id!, checkDate);
-          if (completions.any((c) => c.isCompleted)) {
-            hasAnyCompletion = true;
-            break;
-          }
+        final completions = getCompletionsForDate(habit.id, checkDate);
+        if (completions.any((c) => c.isCompleted)) {
+          hasAnyCompletion = true;
+          break;
         }
       }
 
@@ -251,10 +256,8 @@ class HabitController extends ChangeNotifier {
   int getTotalCompletionsForDate(DateTime date) {
     int total = 0;
     for (final habit in _habits) {
-      if (habit.id != null) {
-        final completions = getCompletionsForDate(habit.id!, date);
-        total += completions.where((c) => c.isCompleted).length;
-      }
+      final completions = getCompletionsForDate(habit.id, date);
+      total += completions.where((c) => c.isCompleted).length;
     }
     return total;
   }
@@ -268,15 +271,26 @@ class HabitController extends ChangeNotifier {
 
     return completedHabits / totalHabits;
   }
+
   List<Map<String, dynamic>> getWeeklyData() {
     final List<Map<String, dynamic>> weekData = [];
     final DateTime now = DateTime.now();
     final int currentDayOfWeek = now.weekday; // 1 = Monday, 7 = Sunday
 
-    // Hitung tanggal Senin minggu ini
-    final DateTime mondayOfThisWeek = now.subtract(Duration(days: currentDayOfWeek - 1));
+    // Calculate Monday of this week
+    final DateTime mondayOfThisWeek = now.subtract(
+      Duration(days: currentDayOfWeek - 1),
+    );
 
-    const List<String> dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const List<String> dayNames = [
+      'Mon',
+      'Tue',
+      'Wed',
+      'Thu',
+      'Fri',
+      'Sat',
+      'Sun',
+    ];
 
     for (int i = 0; i < 7; i++) {
       final DateTime currentDay = mondayOfThisWeek.add(Duration(days: i));
@@ -310,7 +324,8 @@ class HabitController extends ChangeNotifier {
 
     return totalPossible > 0 ? totalCompleted / totalPossible : 0.0;
   }
-// Add the setFilters method
+
+  // Add the setFilters method
   void setFilters(String title, List<String> timeFilters) {
     _titleFilter = title;
     _timeFilters = timeFilters;

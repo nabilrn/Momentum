@@ -13,8 +13,7 @@ import '../utils/color_util_random.dart';
 import 'package:momentum/core/services/habit_completion_service.dart';
 import 'package:momentum/data/datasources/supabase_datasource.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:audioplayers/audioplayers.dart';
-
+import 'dart:io' show Platform;
 
 class TimerScreen extends StatefulWidget {
   final String? habitId;
@@ -25,7 +24,8 @@ class TimerScreen extends StatefulWidget {
   State<TimerScreen> createState() => _TimerScreenState();
 }
 
-class _TimerScreenState extends State<TimerScreen> with TickerProviderStateMixin {
+class _TimerScreenState extends State<TimerScreen>
+    with TickerProviderStateMixin {
   // Timer state
   bool _isRunning = false;
   bool _isCompleted = false;
@@ -42,7 +42,8 @@ class _TimerScreenState extends State<TimerScreen> with TickerProviderStateMixin
 
   // Sound and notification variables
   final _audioPlayer = audio.AudioPlayer();
-  final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _notificationsPlugin =
+      FlutterLocalNotificationsPlugin();
 
   @override
   void initState() {
@@ -56,7 +57,10 @@ class _TimerScreenState extends State<TimerScreen> with TickerProviderStateMixin
       duration: const Duration(seconds: 2),
       vsync: this,
     )..repeat(reverse: true);
-    _pulseAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(_pulseController);
+    _pulseAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(_pulseController);
 
     // One-time animation for completion
     _completionController = AnimationController(
@@ -80,18 +84,23 @@ class _TimerScreenState extends State<TimerScreen> with TickerProviderStateMixin
   // Initialize the notifications plugin
   Future<void> _initializeNotifications() async {
     const AndroidInitializationSettings androidSettings =
-    AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@mipmap/ic_launcher');
     const DarwinInitializationSettings iosSettings =
-    DarwinInitializationSettings();
+        DarwinInitializationSettings();
     const InitializationSettings initSettings = InitializationSettings(
-        android: androidSettings, iOS: iosSettings);
+      android: androidSettings,
+      iOS: iosSettings,
+    );
 
     await _notificationsPlugin.initialize(initSettings);
   }
 
   void _loadHabitData() {
     if (widget.habitId != null) {
-      final habitController = Provider.of<HabitController>(context, listen: false);
+      final habitController = Provider.of<HabitController>(
+        context,
+        listen: false,
+      );
       final habit = habitController.getHabitById(widget.habitId!);
 
       if (habit != null) {
@@ -183,7 +192,9 @@ class _TimerScreenState extends State<TimerScreen> with TickerProviderStateMixin
 
     // Record habit completion if available
     if (_habit != null) {
-      final habitCompletionService = HabitCompletionService(SupabaseDataSource());
+      final habitCompletionService = HabitCompletionService(
+        SupabaseDataSource(),
+      );
       habitCompletionService.recordCompletion(_habit!.id!);
     }
 
@@ -192,22 +203,44 @@ class _TimerScreenState extends State<TimerScreen> with TickerProviderStateMixin
 
   Future<void> _playAlarmSound() async {
     try {
-      await _audioPlayer.setAsset('assets/audio/alarm.mp3');
-      await _audioPlayer.setVolume(1.0);
-      await _audioPlayer.play();
+      // Reset player before loading new asset
+      await _audioPlayer.stop();
+
+      // Load and play the sound with proper error handling
+      if (Platform.isAndroid) {
+        // Android needs special handling
+        try {
+          await _audioPlayer.setAsset('assets/audio/alarm.mp3');
+          await _audioPlayer.setVolume(1.0);
+          await _audioPlayer.play();
+        } catch (e) {
+          debugPrint('Error playing sound on Android: $e');
+          // Fallback to system sound on failure
+          HapticFeedback.vibrate();
+        }
+      } else {
+        // iOS and web handling
+        await _audioPlayer.setAsset('assets/audio/alarm.mp3');
+        await _audioPlayer.setVolume(1.0);
+        await _audioPlayer.play();
+      }
     } catch (e) {
       debugPrint('Error playing sound: $e');
+      // Always provide feedback even if sound fails
+      HapticFeedback.vibrate();
     }
   }
+
   // Show a local notification when timer completes
   Future<void> _showCompletionNotification() async {
-    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      'timer_channel',
-      'Timer Notifications',
-      importance: Importance.max,
-      priority: Priority.high,
-      showWhen: true,
-    );
+    const AndroidNotificationDetails androidDetails =
+        AndroidNotificationDetails(
+          'timer_channel',
+          'Timer Notifications',
+          importance: Importance.max,
+          priority: Priority.high,
+          showWhen: true,
+        );
 
     const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
       presentAlert: true,
@@ -228,21 +261,21 @@ class _TimerScreenState extends State<TimerScreen> with TickerProviderStateMixin
     );
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     final bool isDarkMode = AppTheme.isDarkMode(context);
 
     // Get color based on habit priority or use default
-    final primaryColor = _habit != null
-        ? ColorUtils.getPriorityColor(_habit!.priority)
-        : const Color(0xFF4B6EFF);
+    final primaryColor =
+        _habit != null
+            ? ColorUtils.getPriorityColor(_habit!.priority)
+            : const Color(0xFF4B6EFF);
 
     // Create a slightly different accent color based on the primary
-    final accentColor = _habit != null
-        ? ColorUtils.getPriorityColor(_habit!.priority).withOpacity(0.8)
-        : const Color(0xFF6C4BFF);
+    final accentColor =
+        _habit != null
+            ? ColorUtils.getPriorityColor(_habit!.priority).withOpacity(0.8)
+            : const Color(0xFF6C4BFF);
 
     final backgroundColor = isDarkMode ? const Color(0xFF1E1E2C) : Colors.white;
 

@@ -18,7 +18,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   late String _timeOfDay;
-  bool _isLoading = true; // Add loading state
+  bool _isLoading = true;
 
   // Cache these values for better performance
   final Color _accentColor = const Color(0xFF6C4BFF);
@@ -27,8 +27,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-
-    // Calculate time of day once during initialization
     _timeOfDay = _calculateTimeOfDay();
 
     // Load habits after the first frame and track loading state
@@ -50,7 +48,6 @@ class _HomeScreenState extends State<HomeScreen> {
       _currentIndex = index;
     });
 
-    // Use a map for navigation paths instead of if-else for better scalability
     final routes = {
       1: '/random_habit',
       2: '/overview',
@@ -77,10 +74,19 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDarkMode = AppTheme.isDarkMode(context);
 
     return Scaffold(
-      extendBody: true, // Important for transparent navigation bar
+      extendBody: true,
       backgroundColor: isDarkMode ? const Color(0xFF121117) : Colors.white,
       appBar: const HomeAppBar(),
-      body: _buildBody(isDarkMode),
+      // Use OrientationBuilder to switch between portrait and landscape layouts
+      body: OrientationBuilder(
+        builder: (context, orientation) {
+          if (orientation == Orientation.landscape) {
+            return _buildLandscapeLayout(isDarkMode);
+          } else {
+            return _buildPortraitLayout(isDarkMode);
+          }
+        },
+      ),
       floatingActionButton: _buildFloatingActionButton(),
       bottomNavigationBar: BottomNavigation(
         currentIndex: _currentIndex,
@@ -89,22 +95,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildBody(bool isDarkMode) {
+  // Layout for Portrait Mode
+  Widget _buildPortraitLayout(bool isDarkMode) {
     return SafeArea(
       bottom: false,
       child: Container(
-        decoration: isDarkMode
-            ? const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF121117),
-              Color(0xFF1A1A24),
-            ],
-          ),
-        )
-            : null, // No decoration needed for light mode - more efficient
+        decoration: _buildBackgroundDecoration(isDarkMode),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -114,13 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 80),
-                child: _isLoading
-                    ? _buildLoadingIndicator()
-                    : Consumer<HabitController>(
-                  builder: (context, habitController, _) => HabitList(
-                    habitController: habitController,
-                  ),
-                ),
+                child: _buildHabitList(),
               ),
             ),
           ],
@@ -128,6 +118,72 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+  // Layout for Landscape Mode
+  Widget _buildLandscapeLayout(bool isDarkMode) {
+    return SafeArea(
+      bottom: false,
+      child: Container(
+        decoration: _buildBackgroundDecoration(isDarkMode),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Left column for welcome message and date card
+            Expanded(
+              flex: 2, // Takes up 2/5 of the screen width
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(top: 8, left: 20, right: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildWelcomeMessage(isDarkMode),
+                    const SizedBox(height: 16),
+                    const TimeDateCard(),
+                  ],
+                ),
+              ),
+            ),
+            // Right column for the habit list
+            Expanded(
+              flex: 3, // Takes up 3/5 of the screen width
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 80, right: 20),
+                child: _buildHabitList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Common background decoration
+  BoxDecoration? _buildBackgroundDecoration(bool isDarkMode) {
+    return isDarkMode
+        ? const BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Color(0xFF121117),
+          Color(0xFF1A1A24),
+        ],
+      ),
+    )
+        : null;
+  }
+
+  // Extracted habit list widget for reuse
+  Widget _buildHabitList() {
+    return _isLoading
+        ? _buildLoadingIndicator()
+        : Consumer<HabitController>(
+      builder: (context, habitController, _) => HabitList(
+        habitController: habitController,
+      ),
+    );
+  }
+
 
   Widget _buildLoadingIndicator() {
     return Center(
@@ -146,6 +202,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildWelcomeMessage(bool isDarkMode) {
     return Padding(
+      // Padding is adjusted inside the layouts for landscape
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: Text(
         'Good $_timeOfDay',
@@ -162,10 +219,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            _accentColor,
-            _primaryColor,
-          ],
+          colors: [_accentColor, _primaryColor],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

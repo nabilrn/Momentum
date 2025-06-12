@@ -61,19 +61,21 @@ class AuthProvider extends ChangeNotifier {
       final metadata = _currentUser!.userMetadata;
       if (metadata != null) {
         // Try to get profile image URL from common fields
-        _profileImageUrl = metadata['avatar_url'] as String? ??
+        _profileImageUrl =
+            metadata['avatar_url'] as String? ??
             metadata['picture'] as String? ??
             metadata['profile_picture'] as String?;
 
         // Try to get full name from common fields
-        _fullName = metadata['full_name'] as String? ??
+        _fullName =
+            metadata['full_name'] as String? ??
             metadata['name'] as String? ??
             metadata['display_name'] as String?;
       }
 
       // Get authentication provider
       final appMetadata = _currentUser!.appMetadata;
-      if (appMetadata != true && appMetadata.containsKey('provider')) {
+      if (appMetadata != null && appMetadata.containsKey('provider')) {
         _provider = appMetadata['provider'] as String?;
       }
     }
@@ -98,19 +100,23 @@ class AuthProvider extends ChangeNotifier {
       _lastError = null;
 
       final response = await _authService.signInWithGoogle();
-      _loadCurrentUser(); // Reload user data
+
+      // If we got a response or we're on web (where response is null but auth continues)
+      if (response != null || kIsWeb) {
+        _loadCurrentUser(); // Reload user data
+      }
+
       return response;
     } catch (e) {
+      debugPrint('❌ AuthProvider: Error during Google sign-in: $e');
+
       if (e is AuthException) {
         _lastError = AuthError(
           code: e.statusCode?.toString() ?? 'unknown',
           message: e.message,
         );
       } else {
-        _lastError = AuthError(
-          code: 'unknown',
-          message: e.toString(),
-        );
+        _lastError = AuthError(code: 'unknown', message: e.toString());
       }
 
       notifyListeners();
@@ -134,10 +140,7 @@ class AuthProvider extends ChangeNotifier {
           message: e.message,
         );
       } else {
-        _lastError = AuthError(
-          code: 'unknown',
-          message: e.toString(),
-        );
+        _lastError = AuthError(code: 'unknown', message: e.toString());
       }
 
       notifyListeners();

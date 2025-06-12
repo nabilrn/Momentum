@@ -308,65 +308,7 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
                     ),
 
                     // Additional stats section
-                    if (totalHabits > 0) ...[
-                      const SizedBox(height: 24),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: cardColor,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: isDarkMode
-                              ? []
-                              : [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Quick Stats',
-                              style: TextStyle(
-                                color: textColor,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                _buildQuickStat(
-                                  'Total Habits',
-                                  totalHabits.toString(),
-                                  Icons.list_alt,
-                                  textColor,
-                                  secondaryTextColor,
-                                ),
-                                _buildQuickStat(
-                                  'This Week',
-                                  '${weeklyData.fold<int>(0, (sum, day) => sum + (day['completed'] as int))}/${weeklyData.fold<int>(0, (sum, day) => sum + (day['total'] as int))}',
-                                  Icons.date_range,
-                                  textColor,
-                                  secondaryTextColor,
-                                ),
-                                _buildQuickStat(
-                                  'Best Day',
-                                  _getBestDayOfWeek(weeklyData),
-                                  Icons.star,
-                                  textColor,
-                                  secondaryTextColor,
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+
                   ],
                 ),
               ),
@@ -381,47 +323,6 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildQuickStat(String title, String value, IconData icon, Color textColor, Color secondaryTextColor) {
-    return Column(
-      children: [
-        Icon(icon, color: primaryColor, size: 24),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            color: textColor,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        Text(
-          title,
-          style: TextStyle(
-            color: secondaryTextColor,
-            fontSize: 12,
-          ),
-        ),
-      ],
-    );
-  }
 
-  String _getBestDayOfWeek(List<Map<String, dynamic>> weeklyData) {
-    if (weeklyData.isEmpty) return '-';
 
-    final bestDay = weeklyData.reduce((current, next) {
-      final currentRate = (current['total'] as int) > 0
-          ? (current['completed'] as int) / (current['total'] as int)
-          : 0.0;
-      final nextRate = (next['total'] as int) > 0
-          ? (next['completed'] as int) / (next['total'] as int)
-          : 0.0;
-      return currentRate >= nextRate ? current : next;
-    });
-
-    final completionRate = (bestDay['total'] as int) > 0
-        ? (bestDay['completed'] as int) / (bestDay['total'] as int)
-        : 0.0;
-
-    return completionRate > 0 ? bestDay['day'] as String : '-';
-  }
 }

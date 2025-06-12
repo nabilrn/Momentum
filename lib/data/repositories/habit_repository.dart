@@ -4,7 +4,7 @@ import 'package:momentum/data/datasources/supabase_datasource.dart';
 import 'package:momentum/data/models/habit_model.dart';
 import 'package:momentum/core/services/auth_service.dart';
 import 'package:momentum/core/services/local_storage_service.dart';
-import 'package:momentum/core/services/fcm_service.dart'; // Changed to FCMService
+import 'package:momentum/core/services/fcm_service.dart';
 import 'dart:developer' as developer;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -15,8 +15,8 @@ class HabitRepository {
   HabitRepository({
     required SupabaseDataSource dataSource,
     required AuthService authService,
-  })  : _dataSource = dataSource,
-        _authService = authService;
+  }) : _dataSource = dataSource,
+       _authService = authService;
 
   // Create a new habit
   Future<HabitModel> createHabit({
@@ -26,24 +26,29 @@ class HabitRepository {
     TimeOfDay? startTime,
   }) async {
     try {
-      developer.log('Creating habit: $name, $focusTimeMinutes min, priority: $priority');
+      developer.log(
+        'Creating habit: $name, $focusTimeMinutes min, priority: $priority',
+      );
 
       // Get current user ID
       final userId = _authService.currentUser?.id;
       developer.log('Current user ID: $userId');
 
       if (userId == null) {
-        developer.log('Authentication error: User not authenticated', error: 'AUTH_ERROR');
+        developer.log(
+          'Authentication error: User not authenticated',
+          error: 'AUTH_ERROR',
+        );
         throw Exception('User not authenticated');
       }
 
       // Format start time for storage
-      final formattedStartTime = startTime != null
-          ? HabitModel.formatTimeOfDay(startTime)
-          : null;
+      final formattedStartTime =
+          startTime != null ? HabitModel.formatTimeOfDay(startTime) : null;
 
       // Create habit model
       final habit = HabitModel(
+        id: DateTime.now().millisecondsSinceEpoch.toString(), // Temporary ID
         name: name,
         focusTimeMinutes: focusTimeMinutes,
         priority: priority,
@@ -54,10 +59,10 @@ class HabitRepository {
       // Save to database
       final result = await _dataSource.createHabit(habit);
 
-      // After successful creation, add to local SQLite database
+      // After successful creation, add to local storage
       await LocalStorageService.addHabit(result);
 
-      // Update notifications if enabled - using FCMService now
+      // Update notifications if enabled
       final isEnabled = await FCMService.areNotificationsEnabled();
       if (isEnabled) {
         await FCMService.scheduleHabitReminders(userId);
@@ -79,7 +84,10 @@ class HabitRepository {
       developer.log('Current user ID: $userId');
 
       if (userId == null) {
-        developer.log('Authentication error: User not authenticated', error: 'AUTH_ERROR');
+        developer.log(
+          'Authentication error: User not authenticated',
+          error: 'AUTH_ERROR',
+        );
         throw Exception('User not authenticated');
       }
 
@@ -88,16 +96,21 @@ class HabitRepository {
         final habits = await _dataSource.getHabitsForUser(userId);
         developer.log('Retrieved ${habits.length} habits from Supabase');
 
-        // Update local SQLite database with fresh data
+        // Update local storage with fresh data
         await LocalStorageService.saveHabits(userId, habits);
         await _updateLastSyncTime(userId);
 
         return habits;
       } catch (e) {
-        // If Supabase fetch fails, try to get habits from local SQLite
-        developer.log('Error fetching from Supabase, trying local SQLite', error: e);
+        // If Supabase fetch fails, try to get habits from local storage
+        developer.log(
+          'Error fetching from Supabase, trying local storage',
+          error: e,
+        );
         final localHabits = await LocalStorageService.getHabits(userId);
-        developer.log('Retrieved ${localHabits.length} habits from local SQLite');
+        developer.log(
+          'Retrieved ${localHabits.length} habits from local storage',
+        );
 
         if (localHabits.isEmpty) {
           // If local storage is also empty, rethrow the original exception
@@ -130,11 +143,11 @@ class HabitRepository {
 
       final updatedHabit = await _dataSource.updateHabit(habit);
 
-      // Update the habit in local SQLite
+      // Update the habit in local storage
       await LocalStorageService.updateHabit(updatedHabit);
       await _updateLastSyncTime(userId);
 
-      // Update notifications using FCMService
+      // Update notifications
       final isEnabled = await FCMService.areNotificationsEnabled();
       if (isEnabled) {
         await FCMService.scheduleHabitReminders(userId);
@@ -159,11 +172,11 @@ class HabitRepository {
 
       await _dataSource.deleteHabit(habitId);
 
-      // Also remove from local SQLite
+      // Also remove from local storage
       await LocalStorageService.deleteHabit(habitId);
       await _updateLastSyncTime(userId);
 
-      // Update notifications using FCMService
+      // Update notifications
       final isEnabled = await FCMService.areNotificationsEnabled();
       if (isEnabled) {
         await FCMService.scheduleHabitReminders(userId);
@@ -185,15 +198,19 @@ class HabitRepository {
     if (lastSync == null) return true;
 
     // Sync if last sync was more than 30 minutes ago
-    final thirtyMinutesAgo = DateTime.now().subtract(const Duration(minutes: 30));
+    final thirtyMinutesAgo = DateTime.now().subtract(
+      const Duration(minutes: 30),
+    );
     return lastSync.isBefore(thirtyMinutesAgo);
   }
 
   // Helper methods for sync time management
   Future<void> _updateLastSyncTime(String userId) async {
-    // Store in SharedPreferences since it's just a timestamp
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('last_sync_$userId', DateTime.now().toIso8601String());
+    await prefs.setString(
+      'last_sync_$userId',
+      DateTime.now().toIso8601String(),
+    );
   }
 
   Future<DateTime?> _getLastSyncTime(String userId) async {
