@@ -3,14 +3,12 @@ import 'package:momentum/presentation/controllers/habit_controller.dart';
 import 'package:momentum/presentation/widgets/home/habit_item.dart';
 import 'package:momentum/presentation/widgets/home/filter_bottom_sheet.dart';
 import 'package:momentum/presentation/widgets/home/edit_habit_dialog.dart';
+import '../../widgets/common/empty_state_widget.dart';
 
 class HabitList extends StatefulWidget {
   final HabitController habitController;
 
-  const HabitList({
-    super.key,
-    required this.habitController,
-  });
+  const HabitList({super.key, required this.habitController});
 
   @override
   State<HabitList> createState() => _HabitListState();
@@ -58,25 +56,32 @@ class _HabitListState extends State<HabitList> {
 
   @override
   Widget build(BuildContext context) {
-    final bool hasActiveFilters = _titleFilter.isNotEmpty || _timeFilters.isNotEmpty;
+    final bool hasActiveFilters =
+        _titleFilter.isNotEmpty || _timeFilters.isNotEmpty;
 
     // Map filtered habits to display format
-    final habitsToDisplay = _filteredHabits.map((habit) => {
-      'id': habit.id ?? '',
-      'name': habit.name,
-      'startTime': habit.startTime ?? 'Not set',
-      'priority': habit.priority,
-      'focusTimeMinutes': habit.focusTimeMinutes,
-    }).toList();
+    final habitsToDisplay =
+        _filteredHabits
+            .map(
+              (habit) => {
+                'id': habit.id ?? '',
+                'name': habit.name,
+                'startTime': habit.startTime ?? 'Not set',
+                'priority': habit.priority,
+                'focusTimeMinutes': habit.focusTimeMinutes,
+              },
+            )
+            .toList();
 
     return Column(
       children: [
         _buildHeaderWithFilter(context),
         if (hasActiveFilters) _buildActiveFiltersChips(),
         Expanded(
-          child: habitsToDisplay.isEmpty
-              ? _buildEmptyState(hasActiveFilters)
-              : _buildHabitsList(habitsToDisplay),
+          child:
+              habitsToDisplay.isEmpty
+                  ? _buildEmptyState(hasActiveFilters)
+                  : _buildHabitsList(habitsToDisplay),
         ),
       ],
     );
@@ -93,9 +98,10 @@ class _HabitListState extends State<HabitList> {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white
-                  : Colors.black,
+              color:
+                  Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black,
             ),
           ),
           _buildFilterButton(),
@@ -105,7 +111,8 @@ class _HabitListState extends State<HabitList> {
   }
 
   Widget _buildFilterButton() {
-    final bool hasActiveFilters = _titleFilter.isNotEmpty || _timeFilters.isNotEmpty;
+    final bool hasActiveFilters =
+        _titleFilter.isNotEmpty || _timeFilters.isNotEmpty;
 
     return IconButton(
       icon: Stack(
@@ -195,29 +202,31 @@ class _HabitListState extends State<HabitList> {
   }
 
   void _handleHabitDeletion(String habitId, String habitName) {
-    widget.habitController.deleteHabit(habitId).then((_) {
-
-      setState(() {
-        _dismissedHabitIds.remove(habitId);
-      });
-    }).catchError((error) {
-      // On error, restore the habit in the UI
-      setState(() {
-        _dismissedHabitIds.remove(habitId);
-        _updateFilteredHabits();
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Failed to delete $habitName: $error"),
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.only(
-            bottom: 80.0,
-            left: 10.0,
-            right: 10.0,
-          ),
-        ),
-      );
-    });
+    widget.habitController
+        .deleteHabit(habitId)
+        .then((_) {
+          setState(() {
+            _dismissedHabitIds.remove(habitId);
+          });
+        })
+        .catchError((error) {
+          // On error, restore the habit in the UI
+          setState(() {
+            _dismissedHabitIds.remove(habitId);
+            _updateFilteredHabits();
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Failed to delete $habitName: $error"),
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.only(
+                bottom: 80.0,
+                left: 10.0,
+                right: 10.0,
+              ),
+            ),
+          );
+        });
   }
 
   void _handleEditHabit(Map<String, dynamic> habit) {
@@ -232,6 +241,7 @@ class _HabitListState extends State<HabitList> {
       },
     );
   }
+
   Widget _buildEditBackground() {
     return Container(
       decoration: BoxDecoration(
@@ -243,17 +253,11 @@ class _HabitListState extends State<HabitList> {
       child: const Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.edit,
-            color: Colors.white,
-          ),
+          Icon(Icons.edit, color: Colors.white),
           SizedBox(height: 4),
           Text(
             'Edit',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -271,41 +275,44 @@ class _HabitListState extends State<HabitList> {
       child: const Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.delete,
-            color: Colors.white,
-          ),
+          Icon(Icons.delete, color: Colors.white),
           SizedBox(height: 4),
           Text(
             'Delete',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ],
       ),
     );
   }
 
-  Future<bool> _confirmDeletion(BuildContext context, Map<String, dynamic> habit) async {
+  Future<bool> _confirmDeletion(
+    BuildContext context,
+    Map<String, dynamic> habit,
+  ) async {
     return await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Habit'),
-        content: Text('Are you sure you want to delete "${habit['name']}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('CANCEL'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('DELETE', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    ) ??
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: const Text('Delete Habit'),
+                content: Text(
+                  'Are you sure you want to delete "${habit['name']}"?',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('CANCEL'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: const Text(
+                      'DELETE',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+        ) ??
         false;
   }
 
@@ -316,31 +323,27 @@ class _HabitListState extends State<HabitList> {
       child: Row(
         children: [
           if (_titleFilter.isNotEmpty)
-            _buildFilterChip(
-              'Title: $_titleFilter',
-                  () {
-                setState(() {
-                  _titleFilter = '';
-                  _updateFilteredHabits();
-                });
-              },
-            ),
-          ..._timeFilters.map((filter) => _buildFilterChip(
-            filter,
-                () {
+            _buildFilterChip('Title: $_titleFilter', () {
+              setState(() {
+                _titleFilter = '';
+                _updateFilteredHabits();
+              });
+            }),
+          ..._timeFilters.map(
+            (filter) => _buildFilterChip(filter, () {
               setState(() {
                 _timeFilters.remove(filter);
                 _updateFilteredHabits();
               });
-            },
-          )),
+            }),
+          ),
           if (_titleFilter.isNotEmpty || _timeFilters.isNotEmpty)
             const SizedBox(width: 8),
           if (_titleFilter.isNotEmpty || _timeFilters.isNotEmpty)
             TextButton(
               onPressed: _clearAllFilters,
               child: const Text('Clear All'),
-            )
+            ),
         ],
       ),
     );
@@ -369,41 +372,28 @@ class _HabitListState extends State<HabitList> {
   }
 
   Widget _buildEmptyState(bool hasFilters) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            hasFilters ? Icons.filter_list : Icons.schedule,
-            size: 60,
-            color: Colors.grey,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            hasFilters ? 'No habits match your filters' : 'No habits added yet',
-            style: const TextStyle(
-              fontSize: 18,
-              color: Colors.grey,
-            ),
-          ),
-          const SizedBox(height: 16),
-          if (hasFilters)
-            ElevatedButton(
-              onPressed: _clearAllFilters,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4B6EFF),
-              ),
-              child: const Text('Clear Filters'),
-            ),
-        ],
-      ),
-    );
+    return hasFilters
+        ? EmptyStateWidget(
+          title: 'No habits match your filters',
+          message: 'Try changing your search criteria',
+          lottieAsset: 'assets/lottie/empty_state.json',
+          actionLabel: 'Clear Filters',
+          onActionPressed: _clearAllFilters,
+        )
+        : EmptyStateWidget(
+          title: 'No habits added yet',
+          message: 'Start creating habits to build momentum',
+          lottieAsset: 'assets/lottie/empty_state.json',
+        );
   }
 
   List<dynamic> _applyFilters(List<dynamic> habits) {
     return habits.where((habit) {
-      final nameMatches = _titleFilter.isEmpty ||
-          (habit.name?.toLowerCase() ?? '').contains(_titleFilter.toLowerCase());
+      final nameMatches =
+          _titleFilter.isEmpty ||
+          (habit.name?.toLowerCase() ?? '').contains(
+            _titleFilter.toLowerCase(),
+          );
 
       bool timeMatches = _timeFilters.isEmpty;
 

@@ -7,6 +7,7 @@ import '../widgets/overview/stat_card.dart';
 import '../widgets/overview/progress_section.dart';
 import '../widgets/overview/weekly_chart.dart';
 import '../controllers/habit_controller.dart';
+import '../widgets/common/empty_state_widget.dart';
 
 class OverviewScreen extends StatefulWidget {
   const OverviewScreen({super.key});
@@ -15,7 +16,8 @@ class OverviewScreen extends StatefulWidget {
   State<OverviewScreen> createState() => _OverviewScreenState();
 }
 
-class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProviderStateMixin {
+class _OverviewScreenState extends State<OverviewScreen>
+    with SingleTickerProviderStateMixin {
   int _currentIndex = 2;
   late AnimationController _animController;
 
@@ -37,7 +39,10 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
 
     // Load habits with completions when the screen is first created
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final habitController = Provider.of<HabitController>(context, listen: false);
+      final habitController = Provider.of<HabitController>(
+        context,
+        listen: false,
+      );
       habitController.loadHabitsWithCompletions();
     });
   }
@@ -128,7 +133,8 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
                   ),
                   const SizedBox(height: 8),
                   ElevatedButton(
-                    onPressed: () => habitController.loadHabitsWithCompletions(),
+                    onPressed:
+                        () => habitController.loadHabitsWithCompletions(),
                     child: const Text('Retry'),
                   ),
                 ],
@@ -140,178 +146,179 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
           final totalHabits = habits.length;
 
           // Use real data from HabitController
-          final int completedHabits = habitController.getTotalCompletionsForDate(DateTime.now());
+          final int completedHabits = habitController
+              .getTotalCompletionsForDate(DateTime.now());
           final int streakDays = habitController.calculateCurrentStreak();
-          final double completionRate = habitController.getTodayCompletionRate();
-          final List<Map<String, dynamic>> weeklyData = habitController.getWeeklyData();
+          final double completionRate =
+              habitController.getTodayCompletionRate();
+          final List<Map<String, dynamic>> weeklyData =
+              habitController.getWeeklyData();
           final double weeklyAvg = habitController.getWeeklyCompletionRate();
 
           return Container(
-            decoration: isDarkMode
-                ? const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFF121117),
-                  Color(0xFF1A1A24),
-                ],
-              ),
-            )
-                : const BoxDecoration(color: Colors.white),
+            decoration:
+                isDarkMode
+                    ? const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0xFF121117), Color(0xFF1A1A24)],
+                      ),
+                    )
+                    : const BoxDecoration(color: Colors.white),
             child: SafeArea(
               bottom: false,
-              child: totalHabits == 0
-                  ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.add_task,
-                      color: primaryColor.withOpacity(0.6),
-                      size: 80,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No habits yet',
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Add habits to see your progress',
-                      style: TextStyle(color: secondaryTextColor, fontSize: 16),
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton(
-                      onPressed: () {
-                        NavigationService.navigateTo(context, '/add_habit');
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryColor,
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+              child:
+                  totalHabits == 0
+                      ? Center(
+                        child: EmptyStateWidget(
+                          title: 'No habits yet',
+                          message: 'Add habits to see your progress',
+                          lottieAsset: 'assets/lottie/empty_state.json',
+                          actionLabel: 'Add Your First Habit',
+                          onActionPressed: () {
+                            NavigationService.navigateTo(context, '/add_habit');
+                          },
                         ),
-                      ),
-                      child: const Text(
-                        'Add Your First Habit',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                    ),
-                  ],
-                ),
-              )
-                  : SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20.0, 16.0, 20.0, 90.0),
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Enhanced Summary Cards Row
-                    Row(
-                      children: [
-                        StatCard(
-                          title: 'Today\'s Habits',
-                          value: '$completedHabits/$totalHabits',
-                          icon: Icons.check_circle_outline,
-                          iconColor: primaryColor,
-                          cardColor: cardColor,
-                          textColor: textColor,
-                          isDarkMode: isDarkMode,
-                          iconGradient: RadialGradient(
-                            colors: [primaryColor.withOpacity(0.7), primaryColor.withOpacity(0.2)],
-                            center: Alignment.center,
-                            radius: 0.8,
-                          ),
+                      )
+                      : SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(
+                          20.0,
+                          16.0,
+                          20.0,
+                          90.0,
                         ),
-                        const SizedBox(width: 16),
-                        StatCard(
-                          title: 'Current Streak',
-                          value: '$streakDays day${streakDays != 1 ? 's' : ''}',
-                          icon: Icons.local_fire_department,
-                          iconColor: streakDays > 0 ? Colors.orange : neutralColor,
-                          cardColor: cardColor,
-                          textColor: textColor,
-                          isDarkMode: isDarkMode,
-                          iconGradient: RadialGradient(
-                            colors: streakDays > 0
-                                ? [Colors.orange.withOpacity(0.7), accentColor.withOpacity(0.3)]
-                                : [neutralColor.withOpacity(0.3), neutralColor.withOpacity(0.1)],
-                            center: Alignment.center,
-                            radius: 0.8,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Progress Circle with real completion rate
-                    ProgressSection(
-                      isDarkMode: isDarkMode,
-                      textColor: textColor,
-                      secondaryTextColor: secondaryTextColor,
-                      primaryColor: primaryColor,
-                      accentColor: accentColor,
-                      completedHabits: completedHabits,
-                      totalHabits: totalHabits,
-                      completionRate: completionRate,
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Weekly Performance section with real data
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Weekly Performance',
-                          style: TextStyle(
-                            color: textColor,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: weeklyAvg > 0.7
-                                  ? [successColor, successColor.withOpacity(0.8)]
-                                  : weeklyAvg > 0.4
-                                  ? [warningColor, warningColor.withOpacity(0.8)]
-                                  : [dangerColor, dangerColor.withOpacity(0.8)],
+                        physics: const BouncingScrollPhysics(),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Enhanced Summary Cards Row
+                            Row(
+                              children: [
+                                StatCard(
+                                  title: 'Today\'s Habits',
+                                  value: '$completedHabits/$totalHabits',
+                                  icon: Icons.check_circle_outline,
+                                  iconColor: primaryColor,
+                                  cardColor: cardColor,
+                                  textColor: textColor,
+                                  isDarkMode: isDarkMode,
+                                  iconGradient: RadialGradient(
+                                    colors: [
+                                      primaryColor.withOpacity(0.7),
+                                      primaryColor.withOpacity(0.2),
+                                    ],
+                                    center: Alignment.center,
+                                    radius: 0.8,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                StatCard(
+                                  title: 'Current Streak',
+                                  value:
+                                      '$streakDays day${streakDays != 1 ? 's' : ''}',
+                                  icon: Icons.local_fire_department,
+                                  iconColor:
+                                      streakDays > 0
+                                          ? Colors.orange
+                                          : neutralColor,
+                                  cardColor: cardColor,
+                                  textColor: textColor,
+                                  isDarkMode: isDarkMode,
+                                  iconGradient: RadialGradient(
+                                    colors:
+                                        streakDays > 0
+                                            ? [
+                                              Colors.orange.withOpacity(0.7),
+                                              accentColor.withOpacity(0.3),
+                                            ]
+                                            : [
+                                              neutralColor.withOpacity(0.3),
+                                              neutralColor.withOpacity(0.1),
+                                            ],
+                                    center: Alignment.center,
+                                    radius: 0.8,
+                                  ),
+                                ),
+                              ],
                             ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '${(weeklyAvg * 100).round()}% weekly',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                            const SizedBox(height: 24),
+
+                            // Progress Circle with real completion rate
+                            ProgressSection(
+                              isDarkMode: isDarkMode,
+                              textColor: textColor,
+                              secondaryTextColor: secondaryTextColor,
+                              primaryColor: primaryColor,
+                              accentColor: accentColor,
+                              completedHabits: completedHabits,
+                              totalHabits: totalHabits,
+                              completionRate: completionRate,
                             ),
-                          ),
+                            const SizedBox(height: 24),
+
+                            // Weekly Performance section with real data
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Weekly Performance',
+                                  style: TextStyle(
+                                    color: textColor,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 5,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors:
+                                          weeklyAvg > 0.7
+                                              ? [
+                                                successColor,
+                                                successColor.withOpacity(0.8),
+                                              ]
+                                              : weeklyAvg > 0.4
+                                              ? [
+                                                warningColor,
+                                                warningColor.withOpacity(0.8),
+                                              ]
+                                              : [
+                                                dangerColor,
+                                                dangerColor.withOpacity(0.8),
+                                              ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    '${(weeklyAvg * 100).round()}% weekly',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Weekly Chart with real data
+                            WeeklyChart(
+                              isDarkMode: isDarkMode,
+                              primaryColor: primaryColor,
+                              secondaryTextColor: secondaryTextColor,
+                              weeklyData: weeklyData,
+                            ),
+
+                            // Additional stats section
+                          ],
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Weekly Chart with real data
-                    WeeklyChart(
-                      isDarkMode: isDarkMode,
-                      primaryColor: primaryColor,
-                      secondaryTextColor: secondaryTextColor,
-                      weeklyData: weeklyData,
-                    ),
-
-                    // Additional stats section
-
-                  ],
-                ),
-              ),
+                      ),
             ),
           );
         },
@@ -322,7 +329,4 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
       ),
     );
   }
-
-
-
 }

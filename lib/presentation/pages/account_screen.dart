@@ -11,7 +11,8 @@ class AccountScreen extends StatefulWidget {
   State<AccountScreen> createState() => _AccountScreenState();
 }
 
-class _AccountScreenState extends State<AccountScreen> with SingleTickerProviderStateMixin {
+class _AccountScreenState extends State<AccountScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
@@ -77,23 +78,18 @@ class _AccountScreenState extends State<AccountScreen> with SingleTickerProvider
           ),
           body: Container(
             decoration: BoxDecoration(
-              gradient: isDarkMode
-                  ? const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFF121117),
-                  Color(0xFF1A1A24),
-                ],
-              )
-                  : LinearGradient(
-                begin: Alignment.topRight,
-                end: Alignment.bottomLeft,
-                colors: [
-                  Colors.white,
-                  const Color(0xFFF5F7FF),
-                ],
-              ),
+              gradient:
+                  isDarkMode
+                      ? const LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0xFF121117), Color(0xFF1A1A24)],
+                      )
+                      : LinearGradient(
+                        begin: Alignment.topRight,
+                        end: Alignment.bottomLeft,
+                        colors: [Colors.white, const Color(0xFFF5F7FF)],
+                      ),
             ),
             child: FadeTransition(
               opacity: _fadeAnimation,
@@ -114,7 +110,10 @@ class _AccountScreenState extends State<AccountScreen> with SingleTickerProvider
                             width: 130,
                             height: 130,
                             decoration: BoxDecoration(
-                              color: isDarkMode ? const Color(0xFF252836) : Colors.grey.shade100,
+                              color:
+                                  isDarkMode
+                                      ? const Color(0xFF252836)
+                                      : Colors.grey.shade100,
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
@@ -123,20 +122,25 @@ class _AccountScreenState extends State<AccountScreen> with SingleTickerProvider
                                   offset: const Offset(0, 8),
                                 ),
                               ],
-                              image: profileImageUrl != null
-                                  ? DecorationImage(
-                                image: NetworkImage(profileImageUrl),
-                                fit: BoxFit.cover,
-                              )
-                                  : null,
+                              image:
+                                  profileImageUrl != null
+                                      ? DecorationImage(
+                                        image: NetworkImage(profileImageUrl),
+                                        fit: BoxFit.cover,
+                                      )
+                                      : null,
                             ),
-                            child: profileImageUrl == null
-                                ? Icon(
-                              Icons.person_rounded,
-                              size: 65,
-                              color: isDarkMode ? Colors.white38 : Colors.black26,
-                            )
-                                : null,
+                            child:
+                                profileImageUrl == null
+                                    ? Icon(
+                                      Icons.person_rounded,
+                                      size: 65,
+                                      color:
+                                          isDarkMode
+                                              ? Colors.white38
+                                              : Colors.black26,
+                                    )
+                                    : null,
                           ),
                         ),
 
@@ -253,11 +257,7 @@ class _AccountScreenState extends State<AccountScreen> with SingleTickerProvider
             color: primaryColor.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(
-            icon,
-            color: primaryColor,
-            size: 20,
-          ),
+          child: Icon(icon, color: primaryColor, size: 20),
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -302,10 +302,7 @@ class _AccountScreenState extends State<AccountScreen> with SingleTickerProvider
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         gradient: LinearGradient(
-          colors: [
-            primaryColor,
-            primaryColor.withBlue(255),
-          ],
+          colors: [primaryColor, primaryColor.withBlue(255)],
         ),
         boxShadow: [
           BoxShadow(
@@ -316,29 +313,35 @@ class _AccountScreenState extends State<AccountScreen> with SingleTickerProvider
         ],
       ),
       child: ElevatedButton(
-        onPressed: isLoading
-            ? null
-            : () async {
-          try {
-            // Get provider
-            final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        onPressed:
+            isLoading
+                ? null
+                : () async {
+                  try {
+                    // Get provider
+                    final authProvider = Provider.of<AuthProvider>(
+                      context,
+                      listen: false,
+                    );
 
-            // Sign out
-            await authProvider.signOut();
+                    // Sign out
+                    await authProvider.signOut();
 
-            // Navigate back
-            if (mounted) {
-              NavigationService.goBackToWelcomeScreen(context);
-            }
-          } catch (e) {
-            // Show error message
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Sign out failed: ${e.toString()}')),
-              );
-            }
-          }
-        },
+                    // Navigate back
+                    if (mounted) {
+                      NavigationService.goBackToWelcomeScreen(context);
+                    }
+                  } catch (e) {
+                    // Show error message
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Sign out failed: ${e.toString()}'),
+                        ),
+                      );
+                    }
+                  }
+                },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
@@ -349,33 +352,31 @@ class _AccountScreenState extends State<AccountScreen> with SingleTickerProvider
             borderRadius: BorderRadius.circular(16),
           ),
         ),
-        child: isLoading
-            ? const SizedBox(
-          width: 24,
-          height: 24,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-          ),
-        )
-            : Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.logout_rounded,
-              color: Colors.white,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              "Log out",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
+        child:
+            isLoading
+                ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+                : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.logout_rounded, color: Colors.white),
+                    const SizedBox(width: 8),
+                    Text(
+                      "Log out",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
       ),
     );
   }

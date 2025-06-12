@@ -9,6 +9,8 @@ import 'package:momentum/core/services/fcm_service.dart'; // Changed to FCMServi
 import 'package:momentum/core/services/auth_service.dart';
 import 'package:provider/provider.dart';
 import 'package:momentum/presentation/providers/auth_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:momentum/presentation/providers/theme_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -17,20 +19,27 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProviderStateMixin {
+class _SettingsScreenState extends State<SettingsScreen>
+    with SingleTickerProviderStateMixin {
   // Change default to false as requested
   bool _notificationsEnabled = false;
-  String _themeMode = 'system';
+  late String _themeMode;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late AuthService _authService;
+  late ThemeProvider _themeProvider;
 
   @override
   void initState() {
     super.initState();
 
     // Initialize auth service properly
-    _authService = Provider.of<AuthProvider>(context, listen: false).authService;
+    _authService =
+        Provider.of<AuthProvider>(context, listen: false).authService;
+
+    // Initialize theme provider
+    _themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    _themeMode = _themeProvider.getThemeModeString();
 
     _animationController = AnimationController(
       vsync: this,
@@ -63,7 +72,29 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       setState(() {
         _themeMode = newValue;
       });
-      // Here you would update the app's theme
+      // Update the app's theme using ThemeProvider
+      _themeProvider.setThemeMode(newValue);
+
+      // Show a confirmation message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Theme changed to ${_getThemeDisplayName(newValue)}'),
+          ),
+        );
+      }
+    }
+  }
+
+  String _getThemeDisplayName(String themeMode) {
+    switch (themeMode) {
+      case 'light':
+        return 'Light';
+      case 'dark':
+        return 'Dark';
+      case 'system':
+      default:
+        return 'System default';
     }
   }
 
@@ -86,7 +117,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           await FCMService.scheduleHabitReminders(userId);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Habit reminders turned on'))
+              const SnackBar(content: Text('Habit reminders turned on')),
             );
           }
         }
@@ -95,7 +126,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Permission denied. Please enable notifications in settings'),
+              content: Text(
+                'Permission denied. Please enable notifications in settings',
+              ),
               duration: Duration(seconds: 3),
             ),
           );
@@ -107,10 +140,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         _notificationsEnabled = value;
       });
       await FCMService.setNotificationsEnabled(false);
-      await FCMService.clearAllNotifications();  // Changed to match FCMService method name
+      await FCMService.clearAllNotifications(); // Changed to match FCMService method name
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Habit reminders turned off'))
+          const SnackBar(content: Text('Habit reminders turned off')),
         );
       }
     }
@@ -146,18 +179,16 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         ),
       ),
       body: Container(
-        decoration: isDarkMode
-            ? const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF121117),
-              Color(0xFF1A1A24),
-            ],
-          ),
-        )
-            : null,
+        decoration:
+            isDarkMode
+                ? const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0xFF121117), Color(0xFF1A1A24)],
+                  ),
+                )
+                : null,
         child: FadeTransition(
           opacity: _fadeAnimation,
           child: ListView(
