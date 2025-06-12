@@ -75,7 +75,7 @@ class AuthProvider extends ChangeNotifier {
 
       // Get authentication provider
       final appMetadata = _currentUser!.appMetadata;
-      if (appMetadata != null && appMetadata.containsKey('provider')) {
+      if (appMetadata.containsKey('provider')) {
         _provider = appMetadata['provider'] as String?;
       }
     }

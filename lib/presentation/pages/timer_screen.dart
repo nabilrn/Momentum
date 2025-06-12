@@ -191,11 +191,11 @@ class _TimerScreenState extends State<TimerScreen>
     });
 
     // Record habit completion if available
-    if (_habit != null) {
+    if (_habit != null && _habit?.id != null) {
       final habitCompletionService = HabitCompletionService(
         SupabaseDataSource(),
       );
-      habitCompletionService.recordCompletion(_habit!.id!);
+      habitCompletionService.recordCompletion(_habit!.id);
     }
 
     _completionController.forward();

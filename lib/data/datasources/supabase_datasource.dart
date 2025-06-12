@@ -30,11 +30,8 @@ class SupabaseDataSource {
 
       debugPrint('📝 Attempting to create habit with data: $habitData');
 
-      final response = await _client
-          .from(_habitsTable)
-          .insert(habitData)
-          .select()
-          .single();
+      final response =
+          await _client.from(_habitsTable).insert(habitData).select().single();
 
       debugPrint('✅ SupabaseDataSource: Habit created successfully');
       return HabitModel.fromMap(response);
@@ -62,19 +59,15 @@ class SupabaseDataSource {
     }
   }
 
-
   Future<HabitModel> updateHabit(HabitModel habit) async {
     try {
-      if (habit.id == null) {
-        throw Exception('Cannot update habit with null id');
-      }
-
-      final response = await _client
-          .from(_habitsTable)
-          .update(habit.toMap())
-          .eq('id', habit.id!)
-          .select()
-          .single();
+      final response =
+          await _client
+              .from(_habitsTable)
+              .update(habit.toMap())
+              .eq('id', habit.id)
+              .select()
+              .single();
 
       debugPrint('✅ SupabaseDataSource: Habit updated successfully');
       return HabitModel.fromMap(response);
@@ -83,13 +76,11 @@ class SupabaseDataSource {
       throw Exception('Failed to update habit: $e');
     }
   }
+
   // Delete a habit
   Future<void> deleteHabit(String habitId) async {
     try {
-      await _client
-          .from(_habitsTable)
-          .delete()
-          .eq('id', habitId);
+      await _client.from(_habitsTable).delete().eq('id', habitId);
     } catch (e) {
       debugPrint('❌ SupabaseDataSource: Error deleting habit: $e');
       rethrow;
@@ -98,20 +89,20 @@ class SupabaseDataSource {
 
   // Add these methods to your SupabaseDataSource class
 
-// Method 1: Insert from Map (recommended)
+  // Method 1: Insert from Map (recommended)
   Future<void> insertHabitCompletionFromMap(Map<String, dynamic> data) async {
     try {
-      await SupabaseService.client
-          .from('habit_completions')
-          .insert(data);
+      await SupabaseService.client.from('habit_completions').insert(data);
     } catch (e) {
       debugPrint('❌ Error inserting habit completion from map: $e');
       rethrow;
     }
   }
 
-// Method 2: Insert model excluding id
-  Future<void> insertHabitCompletionExcludingId(HabitCompletionsModel completion) async {
+  // Method 2: Insert model excluding id
+  Future<void> insertHabitCompletionExcludingId(
+    HabitCompletionsModel completion,
+  ) async {
     try {
       final data = {
         'habit_id': completion.habitId,
@@ -120,30 +111,28 @@ class SupabaseDataSource {
         'created_at': completion.createdAt.toIso8601String(),
       };
 
-      await SupabaseService.client
-          .from('habit_completions')
-          .insert(data);
+      await SupabaseService.client.from('habit_completions').insert(data);
     } catch (e) {
       debugPrint('❌ Error inserting habit completion excluding id: $e');
       rethrow;
     }
   }
 
-
   Future<void> insertHabitCompletion(HabitCompletionsModel completion) async {
     try {
       final data = completion.toMap(); // Use toMap() instead of toJson()
       data.remove('id'); // Remove the id field before insertion
 
-      await SupabaseService.client
-          .from('habit_completions')
-          .insert(data);
+      await SupabaseService.client.from('habit_completions').insert(data);
     } catch (e) {
       debugPrint('❌ Error inserting habit completion: $e');
       rethrow;
     }
   }
-  Future<List<HabitCompletionsModel>> getCompletionsByHabitId(String habitId) async {
+
+  Future<List<HabitCompletionsModel>> getCompletionsByHabitId(
+    String habitId,
+  ) async {
     try {
       final response = await _client
           .from(_habitCompletionsTable)
@@ -159,11 +148,12 @@ class SupabaseDataSource {
       rethrow;
     }
   }
+
   // Add to your SupabaseDataSource class
   Future<List<HabitCompletionsModel>> getHabitCompletions({
     required String habitId,
     required String startDate,
-    required String endDate
+    required String endDate,
   }) async {
     try {
       final response = await _client
@@ -181,6 +171,4 @@ class SupabaseDataSource {
       rethrow;
     }
   }
-
-
 }
