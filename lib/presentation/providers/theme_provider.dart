@@ -2,32 +2,40 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeProvider extends ChangeNotifier {
-  static const String _themePreferenceKey = 'theme_preference';
-
+  static const String themeKey = 'app_theme_mode';
   ThemeMode _themeMode = ThemeMode.system;
+
+  ThemeProvider() {
+    _loadThemeFromPrefs();
+  }
+
+  // Load saved theme when app starts
+  Future<void> _loadThemeFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedTheme = prefs.getString(themeKey);
+
+    if (savedTheme != null) {
+      setThemeMode(savedTheme, saveToPrefs: false);
+    }
+  }
+
+  // Save theme when it changes
+  Future<void> _saveThemeToPrefs(String theme) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(themeKey, theme);
+  }
 
   ThemeMode get themeMode => _themeMode;
 
-  ThemeProvider() {
-    _loadThemePreference();
+  String getThemeModeString() {
+    switch (_themeMode) {
+      case ThemeMode.light: return 'light';
+      case ThemeMode.dark: return 'dark';
+      case ThemeMode.system: return 'system';
+    }
   }
 
-  // Load theme preference from SharedPreferences
-  Future<void> _loadThemePreference() async {
-    final prefs = await SharedPreferences.getInstance();
-    final themeString = prefs.getString(_themePreferenceKey) ?? 'system';
-
-    setThemeMode(themeString, notify: false);
-  }
-
-  // Save theme preference to SharedPreferences
-  Future<void> _saveThemePreference(String theme) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_themePreferenceKey, theme);
-  }
-
-  // Set theme mode based on string value
-  void setThemeMode(String theme, {bool notify = true}) {
+  void setThemeMode(String theme, {bool saveToPrefs = true}) {
     switch (theme) {
       case 'light':
         _themeMode = ThemeMode.light;
@@ -40,31 +48,10 @@ class ThemeProvider extends ChangeNotifier {
         _themeMode = ThemeMode.system;
         break;
     }
+    notifyListeners();
 
-    if (notify) {
-      _saveThemePreference(theme);
-      notifyListeners();
+    if (saveToPrefs) {
+      _saveThemeToPrefs(theme);
     }
-  }
-
-  // Get current theme mode as string
-  String getThemeModeString() {
-    switch (_themeMode) {
-      case ThemeMode.light:
-        return 'light';
-      case ThemeMode.dark:
-        return 'dark';
-      case ThemeMode.system:
-      default:
-        return 'system';
-    }
-  }
-
-  // Check if dark mode is active
-  bool isDarkMode(BuildContext context) {
-    if (_themeMode == ThemeMode.system) {
-      return MediaQuery.of(context).platformBrightness == Brightness.dark;
-    }
-    return _themeMode == ThemeMode.dark;
   }
 }

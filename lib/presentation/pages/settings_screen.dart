@@ -7,7 +7,6 @@ import '../widgets/settings/sections/account_section.dart';
 import '../widgets/settings/sections/about_section.dart';
 import '../widgets/bottom_navigation.dart';
 import '../widgets/sidebar_navigation.dart';
-import '../utils/platform_helper.dart';
 import 'package:momentum/core/services/fcm_service.dart';
 import 'package:momentum/core/services/auth_service.dart';
 import 'package:provider/provider.dart';
