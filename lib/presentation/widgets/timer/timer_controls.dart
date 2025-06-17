@@ -8,7 +8,8 @@ class TimerControls extends StatelessWidget {
   final Color primaryColor;
   final VoidCallback onReset;
   final VoidCallback onToggle;
-  final VoidCallback onNavigateToHome; // Add a callback for navigation
+  final VoidCallback onNavigateToHome;
+  final bool isDesktop;
 
   const TimerControls({
     super.key,
@@ -18,7 +19,8 @@ class TimerControls extends StatelessWidget {
     required this.primaryColor,
     required this.onReset,
     required this.onToggle,
-    required this.onNavigateToHome, // Pass the navigation callback
+    required this.onNavigateToHome,
+    this.isDesktop = false,
   });
 
   @override
@@ -28,9 +30,12 @@ class TimerControls extends StatelessWidget {
         // Completed message
         if (isCompleted)
           Padding(
-            padding: const EdgeInsets.only(bottom: 24.0),
+            padding: EdgeInsets.only(bottom: isDesktop ? 32.0 : 24.0),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              padding: EdgeInsets.symmetric(
+                  horizontal: isDesktop ? 24 : 20,
+                  vertical: isDesktop ? 16 : 12
+              ),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFF4B6EFF), Color(0xFF6C4BFF)],
@@ -44,19 +49,19 @@ class TimerControls extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.celebration,
                     color: Colors.white,
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Text(
                     'Great job! You completed this habit.',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 16,
+                      fontSize: isDesktop ? 18 : 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -66,30 +71,35 @@ class TimerControls extends StatelessWidget {
           ),
 
         // Control buttons
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Reset button
-            TimerActionButton(
-              label: 'Reset',
-              icon: Icons.refresh,
-              color: primaryColor,
-              isDarkMode: isDarkMode,
-              onPressed: onReset,
-              isOutlined: true,
-            ),
-
-            const SizedBox(width: 16),
-
-            // Start/Pause/Done button
-            TimerActionButton(
-              label: isRunning ? 'Pause' : (isCompleted ? 'Done' : 'Start'),
-              icon: isRunning ? Icons.pause : (isCompleted ? Icons.check : Icons.play_arrow),
-              color: primaryColor,
-              isDarkMode: isDarkMode,
-              onPressed: isCompleted ? onNavigateToHome : onToggle, // Navigate if completed
-            ),
-          ],
+        SizedBox(
+          width: isDesktop ? 400 : double.infinity,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                flex: isDesktop ? 1 : 1,
+                child: TimerActionButton(
+                  label: 'Reset',
+                  icon: Icons.refresh,
+                  color: primaryColor,
+                  isDarkMode: isDarkMode,
+                  onPressed: onReset,
+                  isOutlined: true,
+                ),
+              ),
+              SizedBox(width: isDesktop ? 24 : 16),
+              Expanded(
+                flex: isDesktop ? 1 : 1,
+                child: TimerActionButton(
+                  label: isRunning ? 'Pause' : (isCompleted ? 'Done' : 'Start'),
+                  icon: isRunning ? Icons.pause : (isCompleted ? Icons.check : Icons.play_arrow),
+                  color: primaryColor,
+                  isDarkMode: isDarkMode,
+                  onPressed: isCompleted ? onNavigateToHome : onToggle,
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );

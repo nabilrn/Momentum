@@ -70,14 +70,24 @@ class AuthService {
 
       isSigningIn.value = true;
 
+      // Handle different platforms
       if (kIsWeb) {
-        // Web: use Supabase OAuth only
+        // Web: use current origin
         await _supabaseClient.auth.signInWithOAuth(
           OAuthProvider.google,
           redirectTo: Uri.base.origin,
         );
         debugPrint('✅ AuthService: Supabase OAuth sign-in initiated for web');
-        // For web, we return null because the OAuth flow completes asynchronously
+        return null;
+      } else if (defaultTargetPlatform == TargetPlatform.windows ||
+          defaultTargetPlatform == TargetPlatform.macOS ||
+          defaultTargetPlatform == TargetPlatform.linux) {
+        // Desktop: use localhost with port 3000
+        await _supabaseClient.auth.signInWithOAuth(
+          OAuthProvider.google,
+          redirectTo: 'http://localhost:3000/auth/callback',
+        );
+        debugPrint('✅ AuthService: Supabase OAuth sign-in initiated for desktop with port 3000');
         return null;
       } else {
         // Mobile: use GoogleSignIn
@@ -88,7 +98,7 @@ class AuthService {
         }
 
         final GoogleSignInAuthentication googleAuth =
-            await googleUser.authentication;
+        await googleUser.authentication;
         final String? idToken = googleAuth.idToken;
         final String? accessToken = googleAuth.accessToken;
 

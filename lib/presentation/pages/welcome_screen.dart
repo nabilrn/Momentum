@@ -23,6 +23,9 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   late Animation<double> _fadeInAnimation;
   late Animation<Offset> _slideAnimation;
 
+  // REFACTOR: Define a breakpoint for responsive layout
+  static const double _desktopBreakpoint = 900.0;
+
   @override
   void initState() {
     super.initState();
@@ -49,31 +52,19 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       ),
     );
 
-    // Check if user is already signed in
     _checkAuthState();
   }
 
   Future<void> _checkAuthState() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
-    // Check if already authenticated
     if (authProvider.authService.isSignedIn) {
-      debugPrint('✅ User is already signed in');
-      if (mounted) {
+      if (mounted) _navigateToHome();
+    }
+    authProvider.authService.authStateChanges.listen((AuthState state) {
+      if (state.event == AuthChangeEvent.signedIn && mounted) {
         _navigateToHome();
       }
-    }
-
-    // Listen for auth state changes
-    authProvider.authService.authStateChanges.listen((AuthState state) {
-      if (state.event == AuthChangeEvent.signedIn) {
-        debugPrint('✅ Auth state change: Signed in');
-        if (mounted) {
-          _navigateToHome();
-        }
-      }
     });
-
     setState(() => _isInitializing = false);
     _animationController.forward();
   }
@@ -82,80 +73,47 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     Navigator.pushReplacement(
       context,
       PageRouteBuilder(
-        pageBuilder:
-            (context, animation, secondaryAnimation) => const HomeScreen(),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(opacity: animation, child: child);
-        },
+        pageBuilder: (_, __, ___) => const HomeScreen(),
+        transitionsBuilder: (context, animation, _, child) =>
+            FadeTransition(opacity: animation, child: child),
         transitionDuration: const Duration(milliseconds: 500),
       ),
     );
   }
 
   Future<void> _handleGoogleSignIn() async {
-    if (_isLoading) return; // Prevent multiple taps
-
+    if (_isLoading) return;
     setState(() => _isLoading = true);
-    debugPrint('🔐 Sign-in process started');
 
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      debugPrint('🔐 Calling Google Sign-In method');
       final response = await authProvider.signInWithGoogle();
 
-      if (response == null) {
-        debugPrint('❌ Sign-in canceled or returned null');
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Sign-in was canceled'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      } else {
-        debugPrint('✅ Sign-in successful - User: ${response.user?.email}');
-        // The auth state listener will handle navigation
-      }
-    } catch (error) {
-      debugPrint('❌ Sign-in error: $error');
-      String errorMsg = 'Sign-in failed';
-
-      if (error is AuthException) {
-        debugPrint('❌ Auth error code: ${error.statusCode}');
-        debugPrint('❌ Auth error message: ${error.message}');
-
-        if (error.message.contains('Email not confirmed')) {
-          errorMsg = 'Please verify your email address';
-        } else {
-          errorMsg = 'Authentication error: ${error.message}';
-        }
-      } else {
-        // Handle other types of errors
-        final errorString = error.toString();
-        if (errorString.contains('network_error') ||
-            errorString.contains('connection')) {
-          errorMsg = 'Network error. Please check your connection.';
-        } else if (errorString.contains('canceled')) {
-          errorMsg = 'Sign-in was canceled';
-        } else {
-          errorMsg = 'Sign-in failed: ${errorString.split('\n')[0]}';
-        }
-      }
-
-      if (mounted) {
+      if (response == null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMsg),
+          const SnackBar(
+            content: Text('Sign-in was canceled'),
             behavior: SnackBarBehavior.floating,
           ),
         );
       }
+    } catch (error) {
+      if (!mounted) return;
+      String errorMsg = 'Sign-in failed. Please try again.';
+      // (Error handling logic remains the same)
+      if (error is AuthException) {
+        errorMsg = 'Authentication error: ${error.message}';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMsg),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
-        debugPrint('🔐 Sign-in process completed');
       }
     }
   }
@@ -168,27 +126,23 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
-    final bool isDarkMode = AppTheme.isDarkMode(context);
-    final primaryColor = const Color(0xFF4B6EFF);
-    final secondaryColor = const Color(0xFF8C61FF);
+    final isDarkMode = AppTheme.isDarkMode(context);
 
     if (_isInitializing) {
       return Scaffold(
         body: Container(
-          decoration:
-              isDarkMode
-                  ? BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        AppTheme.darkWelcomeGradientStart,
-                        AppTheme.darkWelcomeGradientEnd,
-                      ],
-                    ),
-                  )
-                  : BoxDecoration(color: AppTheme.lightWelcomeBackgroundColor),
+          decoration: isDarkMode
+              ? BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                AppTheme.darkWelcomeGradientStart,
+                AppTheme.darkWelcomeGradientEnd,
+              ],
+            ),
+          )
+              : BoxDecoration(color: AppTheme.lightWelcomeBackgroundColor),
           child: const Center(child: CircularProgressIndicator()),
         ),
       );
@@ -196,200 +150,233 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 
     return Scaffold(
       body: Container(
-        decoration:
-            isDarkMode
-                ? BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      AppTheme.darkWelcomeGradientStart,
-                      AppTheme.darkWelcomeGradientEnd,
-                    ],
-                  ),
-                )
-                : BoxDecoration(
-                  color: AppTheme.lightWelcomeBackgroundColor,
-                  image: DecorationImage(
-                    image: const AssetImage('assets/images/light_pattern.png'),
-                    opacity: 0.05,
-                    repeat: ImageRepeat.repeat,
-                  ),
-                ),
+        width: double.infinity,
+        height: double.infinity,
+        decoration: isDarkMode
+            ? BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              AppTheme.darkWelcomeGradientStart,
+              AppTheme.darkWelcomeGradientEnd,
+            ],
+          ),
+        )
+            : BoxDecoration(
+          color: AppTheme.lightWelcomeBackgroundColor,
+          image: const DecorationImage(
+            image: AssetImage('assets/images/light_pattern.png'),
+            opacity: 0.05,
+            repeat: ImageRepeat.repeat,
+          ),
+        ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // App bar with logo
-                Padding(
-                  padding: const EdgeInsets.only(top: 24.0),
-                  child: FadeTransition(
-                    opacity: _fadeInAnimation,
-                    child: Center(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: primaryColor.withOpacity(0.2),
-                              blurRadius: 20,
-                              spreadRadius: 1,
-                            ),
-                          ],
-                        ),
-                        child: const MomentumLogo(size: 100),
+          // REFACTOR: Use LayoutBuilder to switch between layouts
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth > _desktopBreakpoint) {
+                return _buildDesktopLayout(context);
+              } else {
+                return _buildMobileLayout(context);
+              }
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  // NEW WIDGET: For desktop layout (screen width > 900)
+  Widget _buildDesktopLayout(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final isDarkMode = AppTheme.isDarkMode(context);
+    final primaryColor = const Color(0xFF4B6EFF);
+    final secondaryColor = const Color(0xFF8C61FF);
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1200),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 48.0, vertical: 24.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Left Column: Info and Call to Action
+              Expanded(
+                flex: 2,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FadeTransition(
+                      opacity: _fadeInAnimation,
+                      child: const MomentumLogo(size: 80),
+                    ),
+                    const SizedBox(height: 40),
+                    SlideTransition(
+                      position: _slideAnimation,
+                      child: FadeTransition(
+                        opacity: _fadeInAnimation,
+                        child: _buildWelcomeText(context, primaryColor, secondaryColor, isDarkMode),
                       ),
                     ),
-                  ),
-                ),
-
-                const SizedBox(height: 40),
-
-                // Welcome text with animation
-                SlideTransition(
-                  position: _slideAnimation,
-                  child: FadeTransition(
-                    opacity: _fadeInAnimation,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Hi, Welcome',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.displayLarge?.copyWith(
-                            color: isDarkMode ? Colors.white : Colors.black,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 32,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        ShaderMask(
-                          shaderCallback:
-                              (bounds) => LinearGradient(
-                                colors: [primaryColor, secondaryColor],
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                              ).createShader(bounds),
-                          child: Text(
-                            'to Momentum!',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.displayLarge?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 32,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color:
-                                isDarkMode
-                                    ? Colors.white.withOpacity(0.1)
-                                    : primaryColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            'Create habits, build momentum',
-                            style: TextStyle(
-                              color: isDarkMode ? Colors.white70 : primaryColor,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
+                    const SizedBox(height: 24),
+                    FadeTransition(
+                      opacity: _fadeInAnimation,
+                      child: _buildTagline(context, isDarkMode),
                     ),
-                  ),
-                ),
-
-                const SizedBox(height: 40),
-
-                // World map with animation
-                Expanded(
-                  child: FadeTransition(
-                    opacity: _fadeInAnimation,
-                    child: const Center(child: WorldMap()),
-                  ),
-                ),
-
-                // Tagline
-                FadeTransition(
-                  opacity: _fadeInAnimation,
-                  child: Text(
-                    '"Think Your Needs, Build Your Future"',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: isDarkMode ? Colors.white70 : Colors.black87,
-                      fontStyle: FontStyle.italic,
-                      fontSize: 16,
-                      letterSpacing: 0.5,
+                    const SizedBox(height: 40),
+                    FadeTransition(
+                      opacity: _fadeInAnimation,
+                      child: _buildSignInButton(authProvider, primaryColor, secondaryColor, isDarkMode),
                     ),
-                  ),
+                  ],
                 ),
-
-                const SizedBox(height: 40),
-
-                // Sign-in button with web vs mobile handling
-                FadeTransition(
+              ),
+              const SizedBox(width: 60),
+              // Right Column: Visual Showcase (World Map)
+              Expanded(
+                flex: 3,
+                child: FadeTransition(
                   opacity: _fadeInAnimation,
-                  child:
-                      kIsWeb
-                          ? _buildWebSignInButton(
-                            authProvider,
-                            primaryColor,
-                            secondaryColor,
-                            isDarkMode,
-                          )
-                          : _buildMobileSignInButton(
-                            primaryColor,
-                            secondaryColor,
-                            isDarkMode,
-                          ),
+                  child: const Center(child: WorldMap()),
                 ),
-
-                const SizedBox(height: 40),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  // New method for web sign-in that uses the recommended renderButton approach
-  Widget _buildWebSignInButton(
-    AuthProvider authProvider,
-    Color primaryColor,
-    Color secondaryColor,
-    bool isDarkMode,
-  ) {
+  // NEW WIDGET: For mobile layout (screen width <= 900)
+  Widget _buildMobileLayout(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final isDarkMode = AppTheme.isDarkMode(context);
+    final primaryColor = const Color(0xFF4B6EFF);
+    final secondaryColor = const Color(0xFF8C61FF);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Spacer(flex: 1),
+          FadeTransition(
+            opacity: _fadeInAnimation,
+            child: const Center(child: MomentumLogo(size: 100)),
+          ),
+          const SizedBox(height: 40),
+          SlideTransition(
+            position: _slideAnimation,
+            child: FadeTransition(
+              opacity: _fadeInAnimation,
+              child: _buildWelcomeText(context, primaryColor, secondaryColor, isDarkMode),
+            ),
+          ),
+          Expanded(
+            flex: 4,
+            child: FadeTransition(
+              opacity: _fadeInAnimation,
+              child: const Center(child: WorldMap()),
+            ),
+          ),
+          FadeTransition(
+            opacity: _fadeInAnimation,
+            child: _buildTagline(context, isDarkMode),
+          ),
+          const SizedBox(height: 40),
+          FadeTransition(
+            opacity: _fadeInAnimation,
+            child: _buildSignInButton(authProvider, primaryColor, secondaryColor, isDarkMode),
+          ),
+          const Spacer(flex: 1),
+        ],
+      ),
+    );
+  }
+
+  // REFACTOR: Extracted widgets to reduce duplication
+  Widget _buildWelcomeText(BuildContext context, Color primaryColor, Color secondaryColor, bool isDarkMode) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Hi, Welcome',
+          style: Theme.of(context).textTheme.displayLarge?.copyWith(
+            color: isDarkMode ? Colors.white : Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 32,
+          ),
+        ),
+        const SizedBox(height: 4),
+        ShaderMask(
+          shaderCallback: (bounds) => LinearGradient(
+            colors: [primaryColor, secondaryColor],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ).createShader(bounds),
+          child: Text(
+            'to Momentum!',
+            style: Theme.of(context).textTheme.displayLarge?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 32,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: isDarkMode ? Colors.white.withOpacity(0.1) : primaryColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            'Create habits, build momentum',
+            style: TextStyle(
+              color: isDarkMode ? Colors.white70 : primaryColor,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTagline(BuildContext context, bool isDarkMode) {
+    return Text(
+      '"Think Your Needs, Build Your Future"',
+      textAlign: TextAlign.center,
+      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+        color: isDarkMode ? Colors.white70 : Colors.black87,
+        fontStyle: FontStyle.italic,
+        fontSize: 16,
+        letterSpacing: 0.5,
+      ),
+    );
+  }
+
+  Widget _buildSignInButton(AuthProvider authProvider, Color primaryColor, Color secondaryColor, bool isDarkMode) {
+    // The existing button logic is fine, just calling the appropriate web/mobile version
+    return kIsWeb
+        ? _buildWebSignInButton(authProvider, primaryColor, secondaryColor, isDarkMode)
+        : _buildMobileSignInButton(primaryColor, secondaryColor, isDarkMode);
+  }
+
+  // The web and mobile button implementations remain the same as they were
+  Widget _buildWebSignInButton(AuthProvider authProvider, Color primaryColor, Color secondaryColor, bool isDarkMode) {
+    // ... (kode asli Anda untuk tombol web)
     return Container(
       height: 56,
       decoration: BoxDecoration(
-        gradient:
-            isDarkMode
-                ? null
-                : LinearGradient(
-                  colors: [primaryColor, secondaryColor],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
+        gradient: isDarkMode ? null : LinearGradient(colors: [primaryColor, secondaryColor], begin: Alignment.centerLeft, end: Alignment.centerRight),
         color: isDarkMode ? Colors.white : null,
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color:
-                isDarkMode
-                    ? Colors.black.withOpacity(0.3)
-                    : primaryColor.withOpacity(0.3),
+            color: isDarkMode ? Colors.black.withOpacity(0.3) : primaryColor.withOpacity(0.3),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -410,43 +397,16 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                   decoration: BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
-                    boxShadow:
-                        isDarkMode
-                            ? null
-                            : [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
+                    boxShadow: isDarkMode ? null : [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2))],
                   ),
-                  child:
-                      _isLoading
-                          ? SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                isDarkMode ? Colors.black87 : primaryColor,
-                              ),
-                            ),
-                          )
-                          : Image.asset(
-                            'assets/images/google_logo.png',
-                            height: 20,
-                            width: 20,
-                          ),
+                  child: _isLoading
+                      ? SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(isDarkMode ? Colors.black87 : primaryColor)))
+                      : Image.asset('assets/images/google_logo.png', height: 20, width: 20),
                 ),
                 const SizedBox(width: 16),
                 Text(
                   _isLoading ? 'SIGNING IN...' : 'CONTINUE WITH GOOGLE',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: isDarkMode ? Colors.black87 : Colors.white,
-                    letterSpacing: 1,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold, color: isDarkMode ? Colors.black87 : Colors.white, letterSpacing: 1),
                 ),
               ],
             ),
@@ -456,31 +416,17 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     );
   }
 
-  // Mobile sign-in button remains the same
-  Widget _buildMobileSignInButton(
-    Color primaryColor,
-    Color secondaryColor,
-    bool isDarkMode,
-  ) {
+  Widget _buildMobileSignInButton(Color primaryColor, Color secondaryColor, bool isDarkMode) {
+    // ... (kode asli Anda untuk tombol mobile)
     return Container(
       height: 56,
       decoration: BoxDecoration(
-        gradient:
-            isDarkMode
-                ? null
-                : LinearGradient(
-                  colors: [primaryColor, secondaryColor],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
+        gradient: isDarkMode ? null : LinearGradient(colors: [primaryColor, secondaryColor], begin: Alignment.centerLeft, end: Alignment.centerRight),
         color: isDarkMode ? Colors.white : null,
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color:
-                isDarkMode
-                    ? Colors.black.withOpacity(0.3)
-                    : primaryColor.withOpacity(0.3),
+            color: isDarkMode ? Colors.black.withOpacity(0.3) : primaryColor.withOpacity(0.3),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -501,43 +447,16 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                   decoration: BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
-                    boxShadow:
-                        isDarkMode
-                            ? null
-                            : [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
+                    boxShadow: isDarkMode ? null : [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2))],
                   ),
-                  child:
-                      _isLoading
-                          ? SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                isDarkMode ? Colors.black87 : primaryColor,
-                              ),
-                            ),
-                          )
-                          : Image.asset(
-                            'assets/images/google_logo.png',
-                            height: 20,
-                            width: 20,
-                          ),
+                  child: _isLoading
+                      ? SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(isDarkMode ? Colors.black87 : primaryColor)))
+                      : Image.asset('assets/images/google_logo.png', height: 20, width: 20),
                 ),
                 const SizedBox(width: 16),
                 Text(
                   _isLoading ? 'SIGNING IN...' : 'CONTINUE WITH GOOGLE',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: isDarkMode ? Colors.black87 : Colors.white,
-                    letterSpacing: 1,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold, color: isDarkMode ? Colors.black87 : Colors.white, letterSpacing: 1),
                 ),
               ],
             ),

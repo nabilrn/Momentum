@@ -1,8 +1,12 @@
+// lib/presentation/dialogs/habit_detail_dialog.dart
+
 import 'package:flutter/material.dart';
 import 'package:momentum/core/theme/app_theme.dart';
 import 'package:momentum/presentation/services/navigation_service.dart';
+import 'package:momentum/presentation/widgets/home/edit_habit_dialog.dart'; // Import edit dialog
+
 class HabitDetailDialog {
-  static void show(BuildContext context, Map<String, dynamic> habit) {
+  static void show(BuildContext context, Map<String, dynamic> habit, {Function? onHabitUpdated}) {
     final isDarkMode = AppTheme.isDarkMode(context);
     final primaryColor = const Color(0xFF4B6EFF);
     final accentColor = const Color(0xFF6C4BFF);
@@ -13,219 +17,157 @@ class HabitDetailDialog {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         elevation: 0,
         backgroundColor: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: isDarkMode ? const Color(0xFF1A1A24) : Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header with title and close button
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: _getPriorityColor(habit['priority'] ?? 'medium').withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      _getPriorityIcon(habit['priority'] ?? 'medium'),
-                      color: _getPriorityColor(habit['priority'] ?? 'medium'),
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      habit['name'] ?? 'Unnamed Habit',
-                      style: TextStyle(
-                        color: isDarkMode ? Colors.white : Colors.black,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+        // REFACTOR: Gunakan ConstrainedBox agar dialog tidak terlalu lebar di layar besar
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500), // Batasi lebar maksimum dialog
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: isDarkMode ? const Color(0xFF1A1A24) : Colors.white,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: _getPriorityColor(habit['priority'] ?? 'medium').withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        _getPriorityIcon(habit['priority'] ?? 'medium'),
+                        color: _getPriorityColor(habit['priority'] ?? 'medium'),
+                        size: 20,
                       ),
                     ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: Icon(
-                      Icons.close_rounded,
-                      color: isDarkMode ? Colors.white60 : Colors.black45,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // Habit details
-              _buildDetailRow(
-                context,
-                Icons.schedule_rounded,
-                'Start Time',
-                habit['startTime'] ?? 'Not set',
-                isDarkMode,
-              ),
-              const SizedBox(height: 12),
-              _buildDetailRow(
-                context,
-                Icons.timer_outlined,
-                'Focus Time',
-                '${habit['focusTimeMinutes'] ?? 0} minutes',
-                isDarkMode,
-              ),
-              const SizedBox(height: 12),
-              _buildDetailRow(
-                context,
-                _getPriorityIcon(habit['priority'] ?? 'medium'),
-                'Priority',
-                (habit['priority'] ?? 'medium').toUpperCase(),
-                isDarkMode,
-                valueColor: _getPriorityColor(habit['priority'] ?? 'medium'),
-              ),
-
-              const SizedBox(height: 32),
-
-              // Action buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Edit button
-
-                  // Primary action button
-                  Container(
-                    height: 48,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [accentColor, primaryColor],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: primaryColor.withOpacity(0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        NavigationService.navigateTo(
-                            context,
-                            '/timer',
-                            arguments: {'habitId': habit['id']}
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        foregroundColor: Colors.white,
-                        shadowColor: Colors.transparent,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        habit['name'] ?? 'Unnamed Habit',
+                        style: TextStyle(
+                          color: isDarkMode ? Colors.white : Colors.black,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.timer_outlined, size: 18),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'Start Timer',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: Icon(
+                        Icons.close_rounded,
+                        color: isDarkMode ? Colors.white60 : Colors.black45,
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+                const SizedBox(height: 24),
+                const Divider(height: 1),
+                const SizedBox(height: 24),
+
+                // Habit details
+                _buildDetailRow(Icons.timer_outlined, 'Focus Time', '${habit['focusTimeMinutes'] ?? 0} minutes', isDarkMode),
+                const SizedBox(height: 16),
+                _buildDetailRow(Icons.schedule_rounded, 'Start Time', habit['startTime'] ?? 'Not set', isDarkMode),
+                const SizedBox(height: 16),
+                _buildDetailRow(
+                  _getPriorityIcon(habit['priority'] ?? 'medium'), 'Priority',
+                  (habit['priority'] ?? 'medium').toUpperCase(), isDarkMode,
+                  valueColor: _getPriorityColor(habit['priority'] ?? 'medium'),
+                ),
+                const SizedBox(height: 32),
+
+                // Action buttons
+                Row(
+                  children: [
+                    // NEW: Tombol Edit
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.pop(context); // Tutup dialog detail
+                          EditHabitDialog.show(context, habit, onHabitUpdated: onHabitUpdated); // Buka dialog edit
+                        },
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          side: BorderSide(color: isDarkMode ? Colors.white54 : Colors.grey.shade300),
+                        ),
+                        child: const Text('Edit'),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    // Primary action button
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.play_arrow_rounded, size: 20),
+                        label: const Text('Start Timer', style: TextStyle(fontWeight: FontWeight.bold)),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          NavigationService.navigateTo(
+                              context,
+                              '/timer',
+                              arguments: {'habitId': habit['id']}
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  static Widget _buildDetailRow(
-      BuildContext context,
-      IconData icon,
-      String label,
-      String value,
-      bool isDarkMode,
-      {Color? valueColor}
-      ) {
+  static Widget _buildDetailRow(IconData icon, String label, String value, bool isDarkMode, {Color? valueColor}) {
+    // ... (kode helper tidak berubah)
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 18,
-          color: isDarkMode ? Colors.white60 : Colors.black54,
-        ),
-        const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                color: isDarkMode ? Colors.white60 : Colors.black54,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              value,
-              style: TextStyle(
-                color: valueColor ?? (isDarkMode ? Colors.white : Colors.black),
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
+        Icon(icon, size: 18, color: isDarkMode ? Colors.white60 : Colors.black54),
+        const SizedBox(width: 16),
+        Text(label, style: TextStyle(color: isDarkMode ? Colors.white60 : Colors.black54, fontSize: 14)),
+        const Spacer(),
+        Text(
+          value,
+          style: TextStyle(
+            color: valueColor ?? (isDarkMode ? Colors.white : Colors.black),
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ],
     );
   }
 
   static Color _getPriorityColor(String priority) {
+    // ... (kode helper tidak berubah)
     switch (priority.toLowerCase()) {
-      case 'low':
-        return const Color(0xFF4CAF50); // Green
-      case 'medium':
-        return const Color(0xFFFFC107); // Yellow/Amber
-      case 'high':
-        return const Color(0xFFF44336); // Red
-      default:
-        return const Color(0xFF4B6EFF); // Default blue
+      case 'low': return const Color(0xFF4CAF50);
+      case 'medium': return const Color(0xFFFFC107);
+      case 'high': return const Color(0xFFF44336);
+      default: return const Color(0xFF4B6EFF);
     }
   }
 
   static IconData _getPriorityIcon(String priority) {
+    // ... (kode helper tidak berubah)
     switch (priority.toLowerCase()) {
-      case 'low':
-        return Icons.arrow_downward_rounded;
-      case 'medium':
-        return Icons.remove_rounded;
-      case 'high':
-        return Icons.arrow_upward_rounded;
-      default:
-        return Icons.circle;
+      case 'low': return Icons.arrow_downward_rounded;
+      case 'medium': return Icons.remove_rounded;
+      case 'high': return Icons.arrow_upward_rounded;
+      default: return Icons.circle;
     }
   }
 }

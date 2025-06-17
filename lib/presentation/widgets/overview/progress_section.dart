@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'legend_item.dart';
+import 'package:momentum/presentation/utils/platform_helper.dart';
 
 class ProgressSection extends StatelessWidget {
   final bool isDarkMode;
@@ -10,6 +11,7 @@ class ProgressSection extends StatelessWidget {
   final int completedHabits;
   final int totalHabits;
   final double completionRate;
+  final bool isDesktop;
 
   const ProgressSection({
     super.key,
@@ -21,6 +23,7 @@ class ProgressSection extends StatelessWidget {
     required this.completedHabits,
     required this.totalHabits,
     required this.completionRate,
+    this.isDesktop = false
   });
 
   // Get color based on completion percentage
