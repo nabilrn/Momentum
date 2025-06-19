@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:momentum/core/theme/app_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:momentum/presentation/providers/auth_provider.dart';
@@ -6,6 +7,8 @@ import '../services/navigation_service.dart';
 import '../widgets/bottom_navigation.dart';
 import '../widgets/sidebar_navigation.dart';
 import '../utils/platform_helper.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:io';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -16,15 +19,15 @@ class AccountScreen extends StatefulWidget {
 
 class _AccountScreenState extends State<AccountScreen> {
   int _currentIndex = 4;
-
-  // Responsive breakpoint
-  static const double _breakpoint = 768;
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<AuthProvider>(context, listen: false).refreshUserData();
+      if (mounted) {
+        Provider.of<AuthProvider>(context, listen: false).refreshUserData();
+      }
     });
   }
 
@@ -40,58 +43,170 @@ class _AccountScreenState extends State<AccountScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final isDarkMode = AppTheme.isDarkMode(context);
-    final screenWidth = MediaQuery.of(context).size.width;
-    final usesSidebar = screenWidth > _breakpoint;
+  bool _isValidUrl(String? url) {
+    if (url == null || url.isEmpty) return false;
 
-    return Scaffold(
-      backgroundColor: isDarkMode ? const Color(0xFF121117) : const Color(0xFFF8F9FA),
-      appBar: usesSidebar ? null : AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        title: Text(
-          'Account',
-          style: TextStyle(
-            color: isDarkMode ? Colors.white : Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
+    try {
+      Uri? uri = Uri.tryParse(url);
+      if (uri == null) return false;
+
+      // Check if it's a valid HTTP/HTTPS URL
+      if (!(uri.scheme == 'http' || uri.scheme == 'https')) return false;
+      if (uri.host.isEmpty) return false;
+
+      // Additional validation for common image file extensions
+      final path = uri.path.toLowerCase();
+      final validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
+
+      // If the URL has a path, check if it ends with a valid image extension
+      // or if it's a known image service (like Google profile pictures)
+      if (path.isNotEmpty && !path.contains('googleusercontent') && !path.contains('graph.facebook')) {
+        bool hasValidExtension = validExtensions.any((ext) => path.endsWith(ext));
+        if (!hasValidExtension && !path.contains('avatar') && !path.contains('profile')) {
+          return false;
+        }
+      }
+
+      return true;
+    } catch (e) {
+      debugPrint('URL validation error: $e');
+      return false;
+    }
+  }
+
+  Widget _buildProfileImage(String? profileImageUrl, double size, bool isDarkMode) {
+    final primaryColor = const Color(0xFF4B6EFF);
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [primaryColor, primaryColor.withBlue(255).withGreen(120)],
         ),
-      ),
-      body: Row(
-        children: [
-          // Show sidebar for desktop/web
-          if (usesSidebar) SidebarNavigation(
-            currentIndex: _currentIndex,
-            onTap: _onTabTapped,
-          ),
-
-          // Main content
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF121117) : const Color(0xFFF8F9FA),
-                gradient: isDarkMode ? const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFF121117), Color(0xFF1A1A24)],
-                ) : null,
-              ),
-              child: _buildContent(isDarkMode, usesSidebar),
-            ),
+        boxShadow: [
+          BoxShadow(
+            color: primaryColor.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
-      bottomNavigationBar: usesSidebar ? null : BottomNavigation(
-        currentIndex: _currentIndex,
-        onTap: _onTabTapped,
+      child: CircleAvatar(
+        backgroundColor: Colors.transparent,
+        child: _isValidUrl(profileImageUrl)
+            ? ClipOval(
+          child: CachedNetworkImage(
+            imageUrl: profileImageUrl!,
+            placeholder: (context, url) => Container(
+              width: size,
+              height: size,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.transparent,
+              ),
+              child: const Center(
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+            ),
+            errorWidget: (context, url, error) {
+              debugPrint('Failed to load profile image from URL: $url');
+              debugPrint('Error details: $error');
+
+              // Return fallback icon
+              return _buildFallbackProfileIcon(size);
+            },
+            fit: BoxFit.cover,
+            width: size,
+            height: size,
+            maxHeightDiskCache: 512,
+            memCacheHeight: 512,
+            // Add additional error handling
+            httpHeaders: const {
+              'User-Agent': 'Mozilla/5.0 (compatible; FlutterApp/1.0)',
+            },
+            // Set timeout for network requests
+            fadeInDuration: const Duration(milliseconds: 300),
+            fadeOutDuration: const Duration(milliseconds: 300),
+          ),
+        )
+            : _buildFallbackProfileIcon(size),
       ),
     );
   }
 
-  // REFACTOR: The build content method now routes to a mobile or desktop specific layout.
+  Widget _buildFallbackProfileIcon(double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.transparent,
+      ),
+      child: Icon(
+        Icons.person_outline,
+        color: Colors.white,
+        size: size * 0.5,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDarkMode = AppTheme.isDarkMode(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    final usesSidebar = PlatformHelper.isDesktop || kIsWeb || screenWidth > 768;
+
+    return Container(
+      decoration: _buildBackgroundDecoration(isDarkMode),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: usesSidebar ? null : AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+          title: Text(
+            'Account',
+            style: TextStyle(
+              color: isDarkMode ? Colors.white : Colors.black,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        body: Row(
+          children: [
+            if (usesSidebar) SidebarNavigation(
+              currentIndex: _currentIndex,
+              onTap: _onTabTapped,
+            ),
+            Expanded(
+              child: _buildContent(isDarkMode, usesSidebar),
+            ),
+          ],
+        ),
+        bottomNavigationBar: usesSidebar ? null : BottomNavigation(
+          currentIndex: _currentIndex,
+          onTap: _onTabTapped,
+        ),
+      ),
+    );
+  }
+
+  BoxDecoration _buildBackgroundDecoration(bool isDarkMode) {
+    return isDarkMode ? const BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFF121117), Color(0xFF1A1A24)],
+      ),
+    ) : const BoxDecoration(color: Colors.white);
+  }
+
   Widget _buildContent(bool isDarkMode, bool isDesktop) {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, _) {
@@ -104,7 +219,6 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
-  // NEW WIDGET: A dedicated layout for desktop screens (web).
   Widget _buildDesktopLayout(BuildContext context, AuthProvider authProvider, bool isDarkMode) {
     final cardColor = isDarkMode ? const Color(0xFF1E1E2C) : Colors.white;
 
@@ -127,16 +241,11 @@ class _AccountScreenState extends State<AccountScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Left Column: Profile Info
                   Expanded(
                     flex: 2,
                     child: _buildDesktopProfileSection(authProvider, isDarkMode),
                   ),
-
-                  // Divider
                   VerticalDivider(width: 1, thickness: 1, color: isDarkMode ? Colors.white.withOpacity(0.1) : Colors.grey.shade200),
-
-                  // Right Column: Actions
                   Expanded(
                     flex: 3,
                     child: _buildDesktopActionsSection(context, authProvider, isDarkMode),
@@ -150,11 +259,8 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
-  // NEW WIDGET: Helper for the left side of the desktop layout.
   Widget _buildDesktopProfileSection(AuthProvider authProvider, bool isDarkMode) {
-    final primaryColor = const Color(0xFF4B6EFF);
     final textColor = isDarkMode ? Colors.white : Colors.black;
-    final profileImageUrl = authProvider.profileImageUrl;
     final fullName = authProvider.fullName;
     final email = authProvider.email ?? "No email available";
 
@@ -168,30 +274,7 @@ class _AccountScreenState extends State<AccountScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [primaryColor, primaryColor.withBlue(255).withGreen(120)],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: primaryColor.withOpacity(0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: CircleAvatar(
-              backgroundColor: Colors.transparent,
-              backgroundImage: profileImageUrl != null ? NetworkImage(profileImageUrl) : null,
-              child: profileImageUrl == null
-                  ? Icon(Icons.person_outline, color: Colors.white, size: 60)
-                  : null,
-            ),
-          ),
+          _buildProfileImage(authProvider.profileImageUrl, 120, isDarkMode),
           const SizedBox(height: 24),
           if (fullName != null) ...[
             Text(
@@ -218,13 +301,10 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
-  // NEW WIDGET: Helper for the right side of the desktop layout.
   Widget _buildDesktopActionsSection(BuildContext context, AuthProvider authProvider, bool isDarkMode) {
     final primaryColor = const Color(0xFF4B6EFF);
     final textColor = isDarkMode ? Colors.white : Colors.black;
-    final dangerColor = Colors.red.shade400;
     final provider = authProvider.provider ?? "Google";
-    final isLoading = authProvider.isLoading;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32.0),
@@ -248,31 +328,14 @@ class _AccountScreenState extends State<AccountScreen> {
             primaryColor,
           ),
           const SizedBox(height: 48),
-
-          Text(
-            "Zona Berbahaya",
-            style: TextStyle(
-              color: dangerColor,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            "Tindakan berikut tidak dapat diurungkan. Harap berhati-hati.",
-            style: TextStyle(color: textColor.withOpacity(0.6), fontSize: 14),
-          ),
-          const SizedBox(height: 24),
-
-          // Logout button
           SizedBox(
             height: 50,
             width: double.infinity,
             child: OutlinedButton.icon(
-              icon: isLoading
+              icon: _isLoading
                   ? const SizedBox()
-                  : Icon(Icons.logout_rounded, color: dangerColor),
-              label: isLoading
+                  : const Icon(Icons.logout_rounded, color: Colors.red),
+              label: _isLoading
                   ? const SizedBox(
                 width: 24,
                 height: 24,
@@ -281,10 +344,10 @@ class _AccountScreenState extends State<AccountScreen> {
                   valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
                 ),
               )
-                  : Text("Log out", style: TextStyle(fontSize: 16, color: dangerColor)),
-              onPressed: isLoading ? null : () => _showLogoutConfirmationDialog(context, authProvider),
+                  : const Text("Log out", style: TextStyle(fontSize: 16, color: Colors.red)),
+              onPressed: _isLoading ? null : () => _showLogoutConfirmationDialog(context, authProvider),
               style: OutlinedButton.styleFrom(
-                side: BorderSide(color: dangerColor.withOpacity(0.5)),
+                side: const BorderSide(color: Colors.red),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -296,135 +359,105 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
-  // REFACTORED from the original _buildContent into its own method for clarity.
   Widget _buildMobileLayout(BuildContext context, AuthProvider authProvider, bool isDarkMode) {
     final primaryColor = const Color(0xFF4B6EFF);
-    final cardColor = isDarkMode ? const Color(0xFF1E1E2C) : Colors.white;
     final textColor = isDarkMode ? Colors.white : Colors.black;
-
     final email = authProvider.email ?? "No email available";
-    final profileImageUrl = authProvider.profileImageUrl;
     final fullName = authProvider.fullName;
     final provider = authProvider.provider ?? "Google";
-    final isLoading = authProvider.isLoading;
 
     return SafeArea(
-      bottom: true, // Mobile layout needs bottom safe area
+      bottom: false,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 90),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: Card(
-              color: cardColor,
-              elevation: isDarkMode ? 0 : 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: isDarkMode
-                    ? BorderSide(color: Colors.white.withOpacity(0.05))
-                    : BorderSide.none,
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 90),
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            _buildProfileImage(authProvider.profileImageUrl, 100, isDarkMode),
+            const SizedBox(height: 24),
+
+            if (fullName != null) ...[
+              Text(
+                fullName,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [primaryColor, primaryColor.withBlue(255)],
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: primaryColor.withOpacity(0.3),
-                            blurRadius: 20,
-                          ),
-                        ],
-                      ),
-                      child: CircleAvatar(
-                        backgroundColor: Colors.transparent,
-                        backgroundImage: profileImageUrl != null ? NetworkImage(profileImageUrl) : null,
-                        child: profileImageUrl == null
-                            ? const Icon(Icons.person, color: Colors.white, size: 50)
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    if (fullName != null) ...[
-                      Text(
-                        fullName,
-                        style: TextStyle(
-                          color: textColor,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                    ],
-                    Text(
-                      email,
-                      style: TextStyle(
-                        color: textColor.withOpacity(0.7),
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    Divider(color: textColor.withOpacity(0.1)),
-                    const SizedBox(height: 32),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _infoRow(
-                              Icons.login_rounded, "Sign in method", provider, isDarkMode, primaryColor),
-                          const SizedBox(height: 32),
-                          SizedBox(
-                            height: 50,
-                            child: ElevatedButton.icon(
-                              icon: isLoading ? const SizedBox() : const Icon(Icons.logout_rounded),
-                              label: isLoading
-                                  ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              )
-                                  : const Text("Log out", style: TextStyle(fontSize: 16)),
-                              onPressed: isLoading ? () {} : () => _showLogoutConfirmationDialog(context, authProvider),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: primaryColor,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+              const SizedBox(height: 8),
+            ],
+            Text(
+              email,
+              style: TextStyle(
+                color: textColor.withOpacity(0.7),
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 32),
+
+            Divider(color: textColor.withOpacity(0.1)),
+            const SizedBox(height: 24),
+
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                "Detail Akun",
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),
-          ),
+            const SizedBox(height: 16),
+            _infoRow(
+                Icons.login_rounded,
+                "Sign in method",
+                provider,
+                isDarkMode,
+                primaryColor
+            ),
+            const SizedBox(height: 40),
+
+            SizedBox(
+              height: 50,
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: _isLoading
+                    ? const SizedBox()
+                    : const Icon(Icons.logout_rounded, color: Colors.red),
+                label: _isLoading
+                    ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
+                  ),
+                )
+                    : const Text("Log out", style: TextStyle(fontSize: 16, color: Colors.red)),
+                onPressed: _isLoading ? null : () => _showLogoutConfirmationDialog(context, authProvider),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.red),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // NEW: Logout confirmation dialog
   Future<void> _showLogoutConfirmationDialog(BuildContext context, AuthProvider authProvider) async {
     return showDialog<void>(
       context: context,
-      barrierDismissible: false, // user must tap button!
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: const Text('Konfirmasi Log Out'),
@@ -445,21 +478,24 @@ class _AccountScreenState extends State<AccountScreen> {
             TextButton(
               child: const Text('Log Out', style: TextStyle(color: Colors.red)),
               onPressed: () async {
-                Navigator.of(dialogContext).pop(); // Dismiss the dialog
+                Navigator.of(dialogContext).pop();
                 try {
+                  setState(() => _isLoading = true);
                   await authProvider.signOut();
                   if (mounted) {
+                    setState(() => _isLoading = false);
                     NavigationService.goBackToWelcomeScreen(context);
                   }
                 } catch (e) {
                   if (mounted) {
+                    setState(() => _isLoading = false);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Sign out failed: $e')),
                     );
                   }
                 }
               },
-            ),
+            )
           ],
         );
       },

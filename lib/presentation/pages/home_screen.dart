@@ -10,6 +10,8 @@ import 'package:momentum/presentation/widgets/home/habit_list.dart';
 import 'package:provider/provider.dart';
 import 'package:momentum/presentation/controllers/habit_controller.dart';
 import 'package:lottie/lottie.dart';
+import 'package:momentum/presentation/utils/platform_helper.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -78,7 +80,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final isDarkMode = AppTheme.isDarkMode(context);
     final screenWidth = MediaQuery.of(context).size.width;
-    final usesSidebar = screenWidth > _breakpoint;
+
+    final usesSidebar = PlatformHelper.isDesktop || screenWidth > _breakpoint;
 
     return Scaffold(
       extendBody: !usesSidebar,
@@ -298,15 +301,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildWithBottomNav(bool isDarkMode) {
-    // ... (kode asli Anda tidak berubah, karena sudah baik)
     return OrientationBuilder(
       builder: (context, orientation) {
         final screenWidth = MediaQuery.of(context).size.width;
-        if (orientation == Orientation.landscape && screenWidth > 600) {
-          return _buildLandscapeLayout(isDarkMode);
-        } else {
-          return _buildPortraitLayout(isDarkMode);
-        }
+        final useLandscapeLayout = orientation == Orientation.landscape &&
+            (screenWidth > 600 || PlatformHelper.isDesktop);
+        return useLandscapeLayout
+            ? _buildLandscapeLayout(isDarkMode)
+            : _buildPortraitLayout(isDarkMode);
       },
     );
   }

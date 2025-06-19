@@ -153,8 +153,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> with SingleTickerProvid
     final primaryColor = const Color(0xFF4B6EFF);
     final accentColor = const Color(0xFF6C4BFF);
     final screenWidth = MediaQuery.of(context).size.width;
-    // REFACTOR: Simplified responsive breakpoint logic
-    final useDesktopLayout = screenWidth > 768;
+    final useDesktopLayout = PlatformHelper.isDesktop || screenWidth > 768;
 
     return Scaffold(
       backgroundColor: backgroundColor,

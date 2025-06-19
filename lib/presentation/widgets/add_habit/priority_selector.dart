@@ -19,9 +19,17 @@ class PrioritySelector extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _buildPriorityOption('Low', Colors.green, isDarkMode, textColor),
-        _buildPriorityOption('Medium', Colors.orange, isDarkMode, textColor),
-        _buildPriorityOption('High', Colors.red, isDarkMode, textColor),
+        Flexible(
+          child: _buildPriorityOption('Low', Colors.green, isDarkMode, textColor),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: _buildPriorityOption('Medium', Colors.orange, isDarkMode, textColor),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: _buildPriorityOption('High', Colors.red, isDarkMode, textColor),
+        ),
       ],
     );
   }
