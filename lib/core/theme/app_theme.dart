@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Added for SystemUiOverlayStyle
 
 class AppTheme {
   // Private constructor to prevent instantiation
@@ -20,6 +21,18 @@ class AppTheme {
   static const Color darkBottomNav = Color(0xFF080816);
   static const Color lightBottomNav = Color(0xFF4B6EFF);
 
+  // System UI overlay styles
+  static const SystemUiOverlayStyle lightSystemOverlayStyle = SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.dark, // Black icons for light mode
+    statusBarBrightness: Brightness.light, // iOS status bar settings
+  );
+
+  static const SystemUiOverlayStyle darkSystemOverlayStyle = SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.light, // White icons for dark mode
+    statusBarBrightness: Brightness.dark, // iOS status bar settings
+  );
 
   // Check if current theme is dark
   static bool isDarkMode(BuildContext context) {
@@ -50,6 +63,11 @@ class AppTheme {
     scaffoldBackgroundColor: lightSplashBackgroundColor,
     brightness: Brightness.light,
     fontFamily: 'Roboto',
+    appBarTheme: const AppBarTheme(
+      systemOverlayStyle: lightSystemOverlayStyle,
+      backgroundColor: lightSplashBackgroundColor,
+      elevation: 0,
+    ),
     textTheme: const TextTheme(
       displayLarge: titleStyle,
       bodyMedium: taglineStyle,
@@ -73,6 +91,11 @@ class AppTheme {
     scaffoldBackgroundColor: darkSplashGradientStart,
     brightness: Brightness.dark,
     fontFamily: 'Roboto',
+    appBarTheme: const AppBarTheme(
+      systemOverlayStyle: darkSystemOverlayStyle,
+      backgroundColor: darkSplashGradientStart,
+      elevation: 0,
+    ),
     textTheme: const TextTheme(
       displayLarge: titleStyle,
       bodyMedium: taglineStyle,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:momentum/core/theme/app_theme.dart';
 import '../services/navigation_service.dart';
 import '../widgets/settings/sections/appearance_section.dart';
@@ -164,6 +165,9 @@ class _SettingsScreenState extends State<SettingsScreen>
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
+        systemOverlayStyle: isDarkMode
+            ? SystemUiOverlayStyle.light
+            : SystemUiOverlayStyle.dark,
         title: Text(
           'Settings',
           style: TextStyle(

@@ -165,11 +165,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
         )
             : BoxDecoration(
           color: AppTheme.lightWelcomeBackgroundColor,
-          image: const DecorationImage(
-            image: AssetImage('assets/images/light_pattern.png'),
-            opacity: 0.05,
-            repeat: ImageRepeat.repeat,
-          ),
+
         ),
         child: SafeArea(
           // REFACTOR: Use LayoutBuilder to switch between layouts

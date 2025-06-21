@@ -7,8 +7,6 @@ import '../services/navigation_service.dart';
 import '../widgets/bottom_navigation.dart';
 import '../widgets/sidebar_navigation.dart';
 import '../utils/platform_helper.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'dart:io';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -95,46 +93,10 @@ class _AccountScreenState extends State<AccountScreen> {
       ),
       child: CircleAvatar(
         backgroundColor: Colors.transparent,
-        child: _isValidUrl(profileImageUrl)
-            ? ClipOval(
-          child: CachedNetworkImage(
-            imageUrl: profileImageUrl!,
-            placeholder: (context, url) => Container(
-              width: size,
-              height: size,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.transparent,
-              ),
-              child: const Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              ),
-            ),
-            errorWidget: (context, url, error) {
-              debugPrint('Failed to load profile image from URL: $url');
-              debugPrint('Error details: $error');
-
-              // Return fallback icon
-              return _buildFallbackProfileIcon(size);
-            },
-            fit: BoxFit.cover,
-            width: size,
-            height: size,
-            maxHeightDiskCache: 512,
-            memCacheHeight: 512,
-            // Add additional error handling
-            httpHeaders: const {
-              'User-Agent': 'Mozilla/5.0 (compatible; FlutterApp/1.0)',
-            },
-            // Set timeout for network requests
-            fadeInDuration: const Duration(milliseconds: 300),
-            fadeOutDuration: const Duration(milliseconds: 300),
-          ),
-        )
-            : _buildFallbackProfileIcon(size),
+        backgroundImage: profileImageUrl != null ? NetworkImage(profileImageUrl) : null,
+        child: profileImageUrl == null
+            ? Icon(Icons.person_outline, color: Colors.white, size: 60)
+            : null,
       ),
     );
   }
@@ -460,17 +422,17 @@ class _AccountScreenState extends State<AccountScreen> {
       barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          title: const Text('Konfirmasi Log Out'),
+          title: const Text('Log Out Confirmation'),
           content: const SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
-                Text('Apakah Anda yakin ingin keluar dari akun Anda?'),
+                Text('Are you sure want to log out?'),
               ],
             ),
           ),
           actions: <Widget>[
             TextButton(
-              child: const Text('Batal'),
+              child: const Text('Cancel'),
               onPressed: () {
                 Navigator.of(dialogContext).pop();
               },

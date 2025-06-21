@@ -48,7 +48,6 @@ dependencies:
   audioplayers: ^6.4.0
   just_audio: ^0.10.3
   lottie: ^3.1.0
-  cached_network_image: ^3.4.1
 
 dev_dependencies:
   flutter_test:
@@ -57,6 +56,7 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   hive_generator: ^2.0.1
   build_runner: ^2.4.8
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
@@ -64,3 +64,9 @@ flutter:
     - assets/images/
     - assets/audio/
     - assets/lottie/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/momentum_logo.png"
+
