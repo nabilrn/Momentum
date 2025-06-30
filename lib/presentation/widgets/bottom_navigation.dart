@@ -34,15 +34,26 @@ class BottomNavigation extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             _buildNavItem(context, Icons.home_rounded, 0, 'Home'),
-            _buildNavItem(context, Icons.accessibility_new_rounded, 1, 'Habits'),
-            _buildNavItem(context, Icons.insights_rounded, 2, 'Overview'),
+            _buildNavItem(
+              context,
+              Icons.accessibility_new_rounded,
+              1,
+              'Habits',
+            ),
+            _buildNavItem(context, Icons.save_rounded, 2, 'Priority'),
+            _buildNavItem(context, Icons.insights_rounded, 3, 'Overview'),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNavItem(BuildContext context, IconData icon, int index, String label) {
+  Widget _buildNavItem(
+    BuildContext context,
+    IconData icon,
+    int index,
+    String label,
+  ) {
     final bool isDarkMode = AppTheme.isDarkMode(context);
     final bool isSelected = index == currentIndex;
 
@@ -50,9 +61,18 @@ class BottomNavigation extends StatelessWidget {
       onTap: () {
         onTap(index);
         switch (index) {
-          case 0: NavigationService.navigateTo(context, '/home'); break;
-          case 1: NavigationService.navigateTo(context, '/random_habit'); break;
-          case 2: NavigationService.navigateTo(context, '/overview'); break;
+          case 0:
+            NavigationService.navigateTo(context, '/home');
+            break;
+          case 1:
+            NavigationService.navigateTo(context, '/random_habit');
+            break;
+          case 2:
+            NavigationService.navigateTo(context, '/priority');
+            break;
+          case 3:
+            NavigationService.navigateTo(context, '/overview');
+            break;
         }
       },
       child: Container(
@@ -63,20 +83,24 @@ class BottomNavigation extends StatelessWidget {
             Icon(
               icon,
               size: isSelected ? 24 : 22,
-              color: isSelected
-                  ? (isDarkMode ? Colors.white : Colors.white)
-                  : (isDarkMode ? Colors.white70 : Colors.white.withOpacity(0.7)),
+              color:
+                  isSelected
+                      ? (isDarkMode ? Colors.white : Colors.white)
+                      : (isDarkMode
+                          ? Colors.white70
+                          : Colors.white.withOpacity(0.7)),
             ),
             const SizedBox(height: 4),
             Container(
               width: 32,
               height: 4,
-              decoration: isSelected
-                  ? BoxDecoration(
-                color: isDarkMode ? Colors.white : Colors.white,
-                borderRadius: BorderRadius.circular(2),
-              )
-                  : null,
+              decoration:
+                  isSelected
+                      ? BoxDecoration(
+                        color: isDarkMode ? Colors.white : Colors.white,
+                        borderRadius: BorderRadius.circular(2),
+                      )
+                      : null,
             ),
           ],
         ),

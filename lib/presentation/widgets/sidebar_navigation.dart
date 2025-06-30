@@ -57,6 +57,7 @@ class SidebarNavigation extends StatelessWidget {
           _buildNavItem(context, Icons.home_rounded, 0, 'Home'),
           _buildNavItem(context, Icons.accessibility_new_rounded, 1, 'Random'),
           _buildNavItem(context, Icons.insights_rounded, 2, 'Overview'),
+          _buildNavItem(context, Icons.save_rounded, 5, 'Priority'),
 
           const Spacer(),
 
@@ -70,7 +71,12 @@ class SidebarNavigation extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(BuildContext context, IconData icon, int index, String label) {
+  Widget _buildNavItem(
+    BuildContext context,
+    IconData icon,
+    int index,
+    String label,
+  ) {
     final bool isDarkMode = AppTheme.isDarkMode(context);
     final bool isSelected = index == currentIndex;
     final primaryColor = const Color(0xFF4B6EFF);
@@ -79,30 +85,45 @@ class SidebarNavigation extends StatelessWidget {
       onTap: () {
         onTap(index);
         switch (index) {
-          case 0: NavigationService.navigateTo(context, '/home'); break;
-          case 1: NavigationService.navigateTo(context, '/random_habit'); break;
-          case 2: NavigationService.navigateTo(context, '/overview'); break;
-          case 3: NavigationService.navigateTo(context, '/settings'); break;
-          case 4: NavigationService.navigateTo(context, '/account'); break;
+          case 0:
+            NavigationService.navigateTo(context, '/home');
+            break;
+          case 1:
+            NavigationService.navigateTo(context, '/random_habit');
+            break;
+          case 2:
+            NavigationService.navigateTo(context, '/overview');
+            break;
+          case 3:
+            NavigationService.navigateTo(context, '/settings');
+            break;
+          case 4:
+            NavigationService.navigateTo(context, '/account');
+            break;
+          case 5:
+            NavigationService.navigateTo(context, '/priority');
+            break;
         }
       },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        decoration: isSelected
-            ? BoxDecoration(
-          color: primaryColor.withOpacity(isDarkMode ? 0.2 : 0.1),
-          borderRadius: BorderRadius.circular(12),
-        )
-            : null,
+        decoration:
+            isSelected
+                ? BoxDecoration(
+                  color: primaryColor.withOpacity(isDarkMode ? 0.2 : 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                )
+                : null,
         child: Row(
           children: [
             Icon(
               icon,
               size: 22,
-              color: isSelected
-                  ? primaryColor
-                  : (isDarkMode ? Colors.white70 : Colors.black54),
+              color:
+                  isSelected
+                      ? primaryColor
+                      : (isDarkMode ? Colors.white70 : Colors.black54),
             ),
             const SizedBox(width: 16),
             Text(
@@ -110,9 +131,10 @@ class SidebarNavigation extends StatelessWidget {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected
-                    ? primaryColor
-                    : (isDarkMode ? Colors.white70 : Colors.black87),
+                color:
+                    isSelected
+                        ? primaryColor
+                        : (isDarkMode ? Colors.white70 : Colors.black87),
               ),
             ),
           ],

@@ -331,4 +331,26 @@ class HabitController extends ChangeNotifier {
     _timeFilters = timeFilters;
     notifyListeners();
   }
+
+  // Toggle favorite status of a habit
+  Future<bool> toggleFavorite(String habitId) async {
+    try {
+      final habit = getHabitById(habitId);
+      if (habit == null) return false;
+
+      final updatedHabit = habit.copyWith(isFavorite: !habit.isFavorite);
+      final result = await updateHabit(updatedHabit);
+
+      return result != null;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Get favorite habits
+  List<HabitModel> get favoriteHabits {
+    return _habits.where((habit) => habit.isFavorite).toList();
+  }
 }

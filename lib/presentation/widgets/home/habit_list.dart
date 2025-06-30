@@ -69,6 +69,9 @@ class _HabitListState extends State<HabitList> {
                 'startTime': habit.startTime ?? 'Not set',
                 'priority': habit.priority,
                 'focusTimeMinutes': habit.focusTimeMinutes,
+                'isFavorite': habit.isFavorite,
+                'userId': habit.userId,
+                'createdAt': habit.createdAt,
               },
             )
             .toList();
@@ -197,7 +200,10 @@ class _HabitListState extends State<HabitList> {
           _handleHabitDeletion(habitId, habitName);
         }
       },
-      child: HabitItem(habit: habit),
+      child: HabitItem(
+        habit: habit,
+        onFavoriteToggle: () => _toggleFavorite(habit['id']),
+      ),
     );
   }
 
@@ -287,51 +293,55 @@ class _HabitListState extends State<HabitList> {
   }
 
   Future<bool> _confirmDeletion(
-      BuildContext context,
-      Map<String, dynamic> habit,
-      ) async {
+    BuildContext context,
+    Map<String, dynamic> habit,
+  ) async {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDarkMode ? Colors.white : Colors.black87;
 
     return await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: isDarkMode ? const Color(0xFF1A1A24) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Delete Habit',
-          style: TextStyle(
-            color: textColor,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        content: Text(
-          'Are you sure you want to delete "${habit['name']}"?',
-          style: TextStyle(
-            color: isDarkMode ? Colors.white70 : Colors.black87,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            style: TextButton.styleFrom(
-              foregroundColor: isDarkMode ? Colors.white70 : Colors.grey.shade700,
-            ),
-            child: const Text('CANCEL'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
-            ),
-            child: const Text(
-              'DELETE',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
-    ) ?? false;
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                backgroundColor:
+                    isDarkMode ? const Color(0xFF1A1A24) : Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                title: Text(
+                  'Delete Habit',
+                  style: TextStyle(
+                    color: textColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                content: Text(
+                  'Are you sure you want to delete "${habit['name']}"?',
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white70 : Colors.black87,
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    style: TextButton.styleFrom(
+                      foregroundColor:
+                          isDarkMode ? Colors.white70 : Colors.grey.shade700,
+                    ),
+                    child: const Text('CANCEL'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    style: TextButton.styleFrom(foregroundColor: Colors.red),
+                    child: const Text(
+                      'DELETE',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+        ) ??
+        false;
   }
 
   Widget _buildActiveFiltersChips() {
@@ -450,6 +460,23 @@ class _HabitListState extends State<HabitList> {
     }
 
     return false;
+  }
+
+  void _toggleFavorite(String habitId) async {
+    try {
+      await widget.habitController.toggleFavorite(habitId);
+      setState(() {
+        _updateFilteredHabits();
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed to toggle favorite: $e"),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.only(bottom: 80.0, left: 10.0, right: 10.0),
+        ),
+      );
+    }
   }
 }
 

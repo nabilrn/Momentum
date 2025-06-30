@@ -24,13 +24,14 @@ class HabitModelAdapter extends TypeAdapter<HabitModel> {
       focusTimeMinutes: fields[4] as int,
       startTime: fields[5] as String?,
       priority: fields[6] as String,
+      isFavorite: fields[7] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, HabitModel obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -44,7 +45,9 @@ class HabitModelAdapter extends TypeAdapter<HabitModel> {
       ..writeByte(5)
       ..write(obj.startTime)
       ..writeByte(6)
-      ..write(obj.priority);
+      ..write(obj.priority)
+      ..writeByte(7)
+      ..write(obj.isFavorite);
   }
 
   @override

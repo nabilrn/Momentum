@@ -26,6 +26,9 @@ class HabitModel extends HiveObject {
   @HiveField(6)
   final String priority;
 
+  @HiveField(7)
+  final bool isFavorite;
+
   HabitModel({
     required this.id,
     required this.userId,
@@ -34,6 +37,7 @@ class HabitModel extends HiveObject {
     required this.focusTimeMinutes,
     this.startTime,
     required this.priority,
+    this.isFavorite = false,
   }) : createdAt = createdAt ?? DateTime.now();
 
   HabitModel copyWith({
@@ -44,6 +48,7 @@ class HabitModel extends HiveObject {
     int? focusTimeMinutes,
     String? startTime,
     String? priority,
+    bool? isFavorite,
   }) {
     return HabitModel(
       id: id ?? this.id,
@@ -53,6 +58,7 @@ class HabitModel extends HiveObject {
       focusTimeMinutes: focusTimeMinutes ?? this.focusTimeMinutes,
       startTime: startTime ?? this.startTime,
       priority: priority ?? this.priority,
+      isFavorite: isFavorite ?? this.isFavorite,
     );
   }
 
@@ -66,6 +72,7 @@ class HabitModel extends HiveObject {
       focusTimeMinutes: map['focus_time_minutes'] ?? 25,
       startTime: map['start_time'],
       priority: map['priority'] ?? 'medium',
+      isFavorite: map['is_favorite'] ?? false,
     );
   }
 
@@ -78,6 +85,7 @@ class HabitModel extends HiveObject {
       'focus_time_minutes': focusTimeMinutes,
       'start_time': startTime,
       'priority': priority,
+      'is_favorite': isFavorite,
     };
   }
 

@@ -8,9 +8,14 @@ import 'package:momentum/presentation/pages/timer_screen.dart';
 import 'package:momentum/presentation/pages/settings_screen.dart';
 import 'package:momentum/presentation/pages/account_screen.dart';
 import 'package:momentum/presentation/pages/welcome_screen.dart';
+import 'package:momentum/presentation/pages/favorite_habits_screen.dart';
 
 class NavigationService {
-  static void navigateTo(BuildContext context, String routeName, {Map<String, dynamic>? arguments}) {
+  static void navigateTo(
+    BuildContext context,
+    String routeName, {
+    Map<String, dynamic>? arguments,
+  }) {
     Widget page;
 
     switch (routeName) {
@@ -27,7 +32,7 @@ class NavigationService {
         page = const AddHabitScreen();
         break;
       case '/timer':
-      // Extract habit ID from arguments if available
+        // Extract habit ID from arguments if available
         final String? habitId = arguments?['habitId'];
         page = TimerScreen(habitId: habitId);
         break;
@@ -36,6 +41,9 @@ class NavigationService {
         break;
       case '/account':
         page = const AccountScreen();
+        break;
+      case '/priority':
+        page = const FavoriteHabitsScreen();
         break;
       default:
         page = const HomeScreen();

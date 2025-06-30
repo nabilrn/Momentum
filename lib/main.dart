@@ -10,6 +10,7 @@ import 'package:page_transition/page_transition.dart';
 import 'package:momentum/presentation/pages/timer_screen.dart';
 import 'package:momentum/presentation/pages/settings_screen.dart';
 import 'package:momentum/presentation/pages/account_screen.dart';
+import 'package:momentum/presentation/pages/favorite_habits_screen.dart';
 import 'package:momentum/core/services/supabase_service.dart';
 import 'package:provider/provider.dart';
 import 'package:momentum/presentation/providers/auth_provider.dart';
@@ -192,6 +193,12 @@ class _MomentumAppState extends State<MomentumApp> {
                   return PageTransition(
                     type: PageTransitionType.fade,
                     child: const AccountScreen(),
+                    duration: const Duration(milliseconds: 300),
+                  );
+                case '/priority':
+                  return PageTransition(
+                    type: PageTransitionType.fade,
+                    child: const FavoriteHabitsScreen(),
                     duration: const Duration(milliseconds: 300),
                   );
                 default:

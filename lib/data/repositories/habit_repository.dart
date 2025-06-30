@@ -54,6 +54,7 @@ class HabitRepository {
         priority: priority,
         startTime: formattedStartTime,
         userId: userId,
+        isFavorite: false, // Default to false for new habits
       );
 
       // Save to database

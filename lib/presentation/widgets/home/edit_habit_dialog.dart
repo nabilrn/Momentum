@@ -12,16 +12,23 @@ extension StringExtension on String {
 }
 
 class EditHabitDialog {
-  static void show(BuildContext context, Map<String, dynamic> habit, {Function? onHabitUpdated}) {
+  static void show(
+    BuildContext context,
+    Map<String, dynamic> habit, {
+    Function? onHabitUpdated,
+  }) {
     final isDarkMode = AppTheme.isDarkMode(context);
     final theme = Theme.of(context);
     final textColor = isDarkMode ? Colors.white : Colors.black87;
     final formKey = GlobalKey<FormState>();
 
     final nameController = TextEditingController(text: habit['name'] ?? '');
-    final focusTimeController = TextEditingController(text: (habit['focusTimeMinutes'] ?? '').toString());
+    final focusTimeController = TextEditingController(
+      text: (habit['focusTimeMinutes'] ?? '').toString(),
+    );
 
-    String selectedPriority = (habit['priority'] ?? 'high').toString().toLowerCase();
+    String selectedPriority =
+        (habit['priority'] ?? 'high').toString().toLowerCase();
     TimeOfDay? startTime;
 
     if (habit['startTime'] != null) {
@@ -29,7 +36,10 @@ class EditHabitDialog {
       try {
         final parts = timeStr.split(':');
         if (parts.length == 2) {
-          startTime = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+          startTime = TimeOfDay(
+            hour: int.parse(parts[0]),
+            minute: int.parse(parts[1]),
+          );
         }
       } catch (e) {
         debugPrint('Error parsing time: $e');
@@ -41,29 +51,36 @@ class EditHabitDialog {
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setState) {
-
             void saveHabit() async {
               if (!(formKey.currentState?.validate() ?? false)) return;
 
               final focusTime = int.tryParse(focusTimeController.text);
               if (focusTime == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Focus time must be a valid number.'), backgroundColor: Colors.red),
+                  const SnackBar(
+                    content: Text('Focus time must be a valid number.'),
+                    backgroundColor: Colors.red,
+                  ),
                 );
                 return;
               }
 
-              final controller = Provider.of<HabitController>(context, listen: false);
+              final controller = Provider.of<HabitController>(
+                context,
+                listen: false,
+              );
 
               // Show loading indicator
               showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (c) => Center(
+                context: context,
+                barrierDismissible: false,
+                builder:
+                    (c) => Center(
                       child: CircularProgressIndicator(
-                        color: isDarkMode ? Colors.white : const Color(0xFF4B6EFF),
-                      )
-                  )
+                        color:
+                            isDarkMode ? Colors.white : const Color(0xFF4B6EFF),
+                      ),
+                    ),
               );
 
               try {
@@ -78,15 +95,32 @@ class EditHabitDialog {
                   currentUserId = habit['userId'] ?? '';
                 }
 
+                // Find the original habit object to preserve all fields
+                HabitModel? originalHabit = userHabits.firstWhere(
+                  (h) => h.id == habit['id'],
+                  orElse:
+                      () => HabitModel(
+                        id: habit['id'] ?? '',
+                        name: '',
+                        userId: currentUserId,
+                        focusTimeMinutes: 25,
+                        priority: 'medium',
+                        isFavorite: false,
+                      ),
+                );
+
                 final habitModel = HabitModel(
                   id: habit['id'] ?? '',
                   name: nameController.text,
                   focusTimeMinutes: focusTime,
                   priority: selectedPriority.toLowerCase(),
-                  startTime: startTime != null
-                      ? "${startTime?.hour.toString().padLeft(2, '0')}:${startTime?.minute.toString().padLeft(2, '0')}"
-                      : null,
+                  startTime:
+                      startTime != null
+                          ? "${startTime?.hour.toString().padLeft(2, '0')}:${startTime?.minute.toString().padLeft(2, '0')}"
+                          : null,
                   userId: currentUserId,
+                  isFavorite: originalHabit.isFavorite,
+                  createdAt: originalHabit.createdAt,
                 );
 
                 final updatedHabit = await controller.updateHabit(habitModel);
@@ -99,26 +133,39 @@ class EditHabitDialog {
                   await controller.loadHabits();
 
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Habit updated successfully!'), backgroundColor: Colors.green),
+                    const SnackBar(
+                      content: Text('Habit updated successfully!'),
+                      backgroundColor: Colors.green,
+                    ),
                   );
                   Navigator.pop(context); // Close edit dialog
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: ${controller.error ?? "Failed to update"}'), backgroundColor: Colors.red),
+                    SnackBar(
+                      content: Text(
+                        'Error: ${controller.error ?? "Failed to update"}',
+                      ),
+                      backgroundColor: Colors.red,
+                    ),
                   );
                 }
               } catch (e) {
                 if (context.mounted) {
                   Navigator.pop(context); // Close loading indicator
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                    SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: Colors.red,
+                    ),
                   );
                 }
               }
             }
 
             return Dialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
               backgroundColor: Colors.transparent,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 600),
@@ -145,86 +192,116 @@ class EditHabitDialog {
                           // Header
                           Row(
                             children: [
-                              const Icon(Icons.edit_note_rounded, color: Color(0xFF4B6EFF), size: 28),
+                              const Icon(
+                                Icons.edit_note_rounded,
+                                color: Color(0xFF4B6EFF),
+                                size: 28,
+                              ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                    'Edit Habit',
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: textColor,
-                                    )
+                                  'Edit Habit',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: textColor,
+                                  ),
                                 ),
                               ),
                               IconButton(
                                 onPressed: () => Navigator.pop(context),
-                                icon: Icon(Icons.close_rounded, color: isDarkMode ? Colors.white60 : Colors.black45),
+                                icon: Icon(
+                                  Icons.close_rounded,
+                                  color:
+                                      isDarkMode
+                                          ? Colors.white60
+                                          : Colors.black45,
+                                ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 24),
 
                           LayoutBuilder(
-                              builder: (context, constraints) {
-                                if (constraints.maxWidth > 500) {
-                                  return _buildDesktopFormLayout(
-                                      isDarkMode,
-                                      nameController,
-                                      focusTimeController,
-                                      selectedPriority,
-                                      startTime,
-                                          (newPriority) => setState(() => selectedPriority = newPriority),
-                                          () async {
-                                        final pickedTime = await showTimePicker(
-                                            context: context,
-                                            initialTime: startTime ?? TimeOfDay.now(),
-                                            builder: (context, child) {
-                                              return Theme(
-                                                data: Theme.of(context).copyWith(
-                                                  timePickerTheme: TimePickerThemeData(
-                                                    backgroundColor: isDarkMode ? const Color(0xFF2A2A3A) : Colors.white,
-                                                    hourMinuteTextColor: textColor,
-                                                    dayPeriodTextColor: textColor,
-                                                  ),
+                            builder: (context, constraints) {
+                              if (constraints.maxWidth > 500) {
+                                return _buildDesktopFormLayout(
+                                  isDarkMode,
+                                  nameController,
+                                  focusTimeController,
+                                  selectedPriority,
+                                  startTime,
+                                  (newPriority) => setState(
+                                    () => selectedPriority = newPriority,
+                                  ),
+                                  () async {
+                                    final pickedTime = await showTimePicker(
+                                      context: context,
+                                      initialTime: startTime ?? TimeOfDay.now(),
+                                      builder: (context, child) {
+                                        return Theme(
+                                          data: Theme.of(context).copyWith(
+                                            timePickerTheme:
+                                                TimePickerThemeData(
+                                                  backgroundColor:
+                                                      isDarkMode
+                                                          ? const Color(
+                                                            0xFF2A2A3A,
+                                                          )
+                                                          : Colors.white,
+                                                  hourMinuteTextColor:
+                                                      textColor,
+                                                  dayPeriodTextColor: textColor,
                                                 ),
-                                                child: child!,
-                                              );
-                                            }
+                                          ),
+                                          child: child!,
                                         );
-                                        if (pickedTime != null) setState(() => startTime = pickedTime);
-                                      }
-                                  );
-                                } else {
-                                  return _buildMobileFormLayout(
-                                      isDarkMode,
-                                      nameController,
-                                      focusTimeController,
-                                      selectedPriority,
-                                      startTime,
-                                          (newPriority) => setState(() => selectedPriority = newPriority),
-                                          () async {
-                                        final pickedTime = await showTimePicker(
-                                            context: context,
-                                            initialTime: startTime ?? TimeOfDay.now(),
-                                            builder: (context, child) {
-                                              return Theme(
-                                                data: Theme.of(context).copyWith(
-                                                  timePickerTheme: TimePickerThemeData(
-                                                    backgroundColor: isDarkMode ? const Color(0xFF2A2A3A) : Colors.white,
-                                                    hourMinuteTextColor: textColor,
-                                                    dayPeriodTextColor: textColor,
-                                                  ),
+                                      },
+                                    );
+                                    if (pickedTime != null)
+                                      setState(() => startTime = pickedTime);
+                                  },
+                                );
+                              } else {
+                                return _buildMobileFormLayout(
+                                  isDarkMode,
+                                  nameController,
+                                  focusTimeController,
+                                  selectedPriority,
+                                  startTime,
+                                  (newPriority) => setState(
+                                    () => selectedPriority = newPriority,
+                                  ),
+                                  () async {
+                                    final pickedTime = await showTimePicker(
+                                      context: context,
+                                      initialTime: startTime ?? TimeOfDay.now(),
+                                      builder: (context, child) {
+                                        return Theme(
+                                          data: Theme.of(context).copyWith(
+                                            timePickerTheme:
+                                                TimePickerThemeData(
+                                                  backgroundColor:
+                                                      isDarkMode
+                                                          ? const Color(
+                                                            0xFF2A2A3A,
+                                                          )
+                                                          : Colors.white,
+                                                  hourMinuteTextColor:
+                                                      textColor,
+                                                  dayPeriodTextColor: textColor,
                                                 ),
-                                                child: child!,
-                                              );
-                                            }
+                                          ),
+                                          child: child!,
                                         );
-                                        if (pickedTime != null) setState(() => startTime = pickedTime);
-                                      }
-                                  );
-                                }
+                                      },
+                                    );
+                                    if (pickedTime != null)
+                                      setState(() => startTime = pickedTime);
+                                  },
+                                );
                               }
+                            },
                           ),
                           const SizedBox(height: 32),
 
@@ -237,10 +314,18 @@ class EditHabitDialog {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF4B6EFF),
                                 foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
                                 elevation: isDarkMode ? 4 : 2,
                               ),
-                              child: const Text('Save Changes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                              child: const Text(
+                                'Save Changes',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           ),
                         ],
@@ -256,7 +341,15 @@ class EditHabitDialog {
     );
   }
 
-  static Widget _buildMobileFormLayout(bool isDarkMode, TextEditingController nameCtrl, TextEditingController timeCtrl, String selectedPriority, TimeOfDay? startTime, Function(String) onPrioritySelect, VoidCallback onTimeTap) {
+  static Widget _buildMobileFormLayout(
+    bool isDarkMode,
+    TextEditingController nameCtrl,
+    TextEditingController timeCtrl,
+    String selectedPriority,
+    TimeOfDay? startTime,
+    Function(String) onPrioritySelect,
+    VoidCallback onTimeTap,
+  ) {
     final labelColor = isDarkMode ? Colors.white70 : Colors.black87;
 
     return Column(
@@ -264,20 +357,47 @@ class EditHabitDialog {
       children: [
         _buildFormField('Habit Name', nameCtrl, isDarkMode: isDarkMode),
         const SizedBox(height: 16),
-        _buildFormField('Focus Time (minutes)', timeCtrl, isDarkMode: isDarkMode, isNumeric: true),
+        _buildFormField(
+          'Focus Time (minutes)',
+          timeCtrl,
+          isDarkMode: isDarkMode,
+          isNumeric: true,
+        ),
         const SizedBox(height: 16),
-        Text('Priority Level', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: labelColor)),
+        Text(
+          'Priority Level',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: labelColor,
+          ),
+        ),
         const SizedBox(height: 8),
         _buildPrioritySelector(selectedPriority, onPrioritySelect, isDarkMode),
         const SizedBox(height: 16),
-        Text('Start Time', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: labelColor)),
+        Text(
+          'Start Time',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: labelColor,
+          ),
+        ),
         const SizedBox(height: 8),
         _buildTimeSelector(startTime, onTimeTap, isDarkMode),
       ],
     );
   }
 
-  static Widget _buildDesktopFormLayout(bool isDarkMode, TextEditingController nameCtrl, TextEditingController timeCtrl, String selectedPriority, TimeOfDay? startTime, Function(String) onPrioritySelect, VoidCallback onTimeTap) {
+  static Widget _buildDesktopFormLayout(
+    bool isDarkMode,
+    TextEditingController nameCtrl,
+    TextEditingController timeCtrl,
+    String selectedPriority,
+    TimeOfDay? startTime,
+    Function(String) onPrioritySelect,
+    VoidCallback onTimeTap,
+  ) {
     final labelColor = isDarkMode ? Colors.white70 : Colors.black87;
 
     return Column(
@@ -285,9 +405,22 @@ class EditHabitDialog {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: _buildFormField('Habit Name', nameCtrl, isDarkMode: isDarkMode)),
+            Expanded(
+              child: _buildFormField(
+                'Habit Name',
+                nameCtrl,
+                isDarkMode: isDarkMode,
+              ),
+            ),
             const SizedBox(width: 16),
-            Expanded(child: _buildFormField('Focus Time (minutes)', timeCtrl, isDarkMode: isDarkMode, isNumeric: true)),
+            Expanded(
+              child: _buildFormField(
+                'Focus Time (minutes)',
+                timeCtrl,
+                isDarkMode: isDarkMode,
+                isNumeric: true,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 24),
@@ -298,9 +431,20 @@ class EditHabitDialog {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Priority Level', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: labelColor)),
+                  Text(
+                    'Priority Level',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: labelColor,
+                    ),
+                  ),
                   const SizedBox(height: 8),
-                  _buildPrioritySelector(selectedPriority, onPrioritySelect, isDarkMode),
+                  _buildPrioritySelector(
+                    selectedPriority,
+                    onPrioritySelect,
+                    isDarkMode,
+                  ),
                 ],
               ),
             ),
@@ -309,19 +453,31 @@ class EditHabitDialog {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Start Time', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: labelColor)),
+                  Text(
+                    'Start Time',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: labelColor,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   _buildTimeSelector(startTime, onTimeTap, isDarkMode),
                 ],
               ),
             ),
           ],
-        )
+        ),
       ],
     );
   }
 
-  static Widget _buildFormField(String label, TextEditingController controller, {required bool isDarkMode, bool isNumeric = false}) {
+  static Widget _buildFormField(
+    String label,
+    TextEditingController controller, {
+    required bool isDarkMode,
+    bool isNumeric = false,
+  }) {
     final labelColor = isDarkMode ? Colors.white70 : Colors.black87;
     final textColor = isDarkMode ? Colors.white : Colors.black;
     final hintColor = isDarkMode ? Colors.white38 : Colors.black38;
@@ -329,23 +485,42 @@ class EditHabitDialog {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: labelColor)),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: labelColor,
+          ),
+        ),
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           style: TextStyle(color: textColor),
           decoration: InputDecoration(
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
             filled: true,
-            fillColor: isDarkMode ? Colors.white.withOpacity(0.1) : Colors.grey.shade100,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            fillColor:
+                isDarkMode
+                    ? Colors.white.withOpacity(0.1)
+                    : Colors.grey.shade100,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
             hintStyle: TextStyle(color: hintColor),
-            errorStyle: TextStyle(color: isDarkMode ? Colors.redAccent : Colors.red),
+            errorStyle: TextStyle(
+              color: isDarkMode ? Colors.redAccent : Colors.red,
+            ),
           ),
           keyboardType: isNumeric ? TextInputType.number : TextInputType.text,
           validator: (value) {
             if (value == null || value.isEmpty) return 'Required';
-            if (isNumeric && int.tryParse(value) == null) return 'Invalid number';
+            if (isNumeric && int.tryParse(value) == null)
+              return 'Invalid number';
             return null;
           },
         ),
@@ -353,13 +528,31 @@ class EditHabitDialog {
     );
   }
 
-  static Widget _buildPrioritySelector(String selectedPriority, Function(String) onSelect, bool isDarkMode) {
+  static Widget _buildPrioritySelector(
+    String selectedPriority,
+    Function(String) onSelect,
+    bool isDarkMode,
+  ) {
     return Row(
-      children: ['High', 'Medium', 'Low'].map((p) => _buildPriorityOption(p, selectedPriority, onSelect, isDarkMode)).toList(),
+      children:
+          ['High', 'Medium', 'Low']
+              .map(
+                (p) => _buildPriorityOption(
+                  p,
+                  selectedPriority,
+                  onSelect,
+                  isDarkMode,
+                ),
+              )
+              .toList(),
     );
   }
 
-  static Widget _buildTimeSelector(TimeOfDay? startTime, VoidCallback onTap, bool isDarkMode) {
+  static Widget _buildTimeSelector(
+    TimeOfDay? startTime,
+    VoidCallback onTap,
+    bool isDarkMode,
+  ) {
     final textColor = isDarkMode ? Colors.white : Colors.black87;
 
     return InkWell(
@@ -368,12 +561,16 @@ class EditHabitDialog {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: isDarkMode ? Colors.white.withOpacity(0.1) : Colors.grey.shade100,
+          color:
+              isDarkMode ? Colors.white.withOpacity(0.1) : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
-            Icon(Icons.schedule_rounded, color: isDarkMode ? Colors.white70 : Colors.grey.shade700),
+            Icon(
+              Icons.schedule_rounded,
+              color: isDarkMode ? Colors.white70 : Colors.grey.shade700,
+            ),
             const SizedBox(width: 12),
             Text(
               startTime != null
@@ -387,10 +584,16 @@ class EditHabitDialog {
     );
   }
 
-  static Widget _buildPriorityOption(String priority, String selectedPriority, Function(String) onSelect, bool isDarkMode) {
+  static Widget _buildPriorityOption(
+    String priority,
+    String selectedPriority,
+    Function(String) onSelect,
+    bool isDarkMode,
+  ) {
     final isSelected = selectedPriority.toLowerCase() == priority.toLowerCase();
     final color = _getPriorityColor(priority);
-    final unselectedTextColor = isDarkMode ? Colors.white60 : Colors.grey.shade700;
+    final unselectedTextColor =
+        isDarkMode ? Colors.white60 : Colors.grey.shade700;
 
     return Expanded(
       child: GestureDetector(
@@ -399,10 +602,18 @@ class EditHabitDialog {
           margin: const EdgeInsets.only(right: 8),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isSelected ? color.withOpacity(isDarkMode ? 0.3 : 0.2) : Colors.transparent,
+            color:
+                isSelected
+                    ? color.withOpacity(isDarkMode ? 0.3 : 0.2)
+                    : Colors.transparent,
             border: Border.all(
-                color: isSelected ? color : (isDarkMode ? Colors.white24 : Colors.grey.withOpacity(0.3)),
-                width: 1.5
+              color:
+                  isSelected
+                      ? color
+                      : (isDarkMode
+                          ? Colors.white24
+                          : Colors.grey.withOpacity(0.3)),
+              width: 1.5,
             ),
             borderRadius: BorderRadius.circular(12),
           ),
@@ -410,8 +621,8 @@ class EditHabitDialog {
             child: Text(
               priority,
               style: TextStyle(
-                  color: isSelected ? color : unselectedTextColor,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal
+                color: isSelected ? color : unselectedTextColor,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
           ),
@@ -422,10 +633,14 @@ class EditHabitDialog {
 
   static Color _getPriorityColor(String priority) {
     switch (priority.toLowerCase()) {
-      case 'low': return const Color(0xFF4CAF50);
-      case 'medium': return const Color(0xFFFFC107);
-      case 'high': return const Color(0xFFF44336);
-      default: return const Color(0xFF4B6EFF);
+      case 'low':
+        return const Color(0xFF4CAF50);
+      case 'medium':
+        return const Color(0xFFFFC107);
+      case 'high':
+        return const Color(0xFFF44336);
+      default:
+        return const Color(0xFF4B6EFF);
     }
   }
 }

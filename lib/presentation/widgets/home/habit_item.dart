@@ -5,11 +5,9 @@ import 'habit_detail_dialog.dart';
 
 class HabitItem extends StatelessWidget {
   final Map<String, dynamic> habit;
+  final VoidCallback? onFavoriteToggle;
 
-  const HabitItem({
-    super.key,
-    required this.habit,
-  });
+  const HabitItem({super.key, required this.habit, this.onFavoriteToggle});
 
   // Get icon based on priority
   IconData _getPriorityIcon(String? priority) {
@@ -30,7 +28,8 @@ class HabitItem extends StatelessWidget {
     final isDarkMode = AppTheme.isDarkMode(context);
     // Get priority and capitalize first letter to match ColorUtils format
     final priority = habit['priority'] ?? 'medium';
-    final priorityFormatted = priority[0].toUpperCase() + priority.substring(1).toLowerCase();
+    final priorityFormatted =
+        priority[0].toUpperCase() + priority.substring(1).toLowerCase();
     final priorityColor = ColorUtils.getPriorityColor(priorityFormatted);
     final priorityIcon = _getPriorityIcon(priority);
 
@@ -40,9 +39,10 @@ class HabitItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: isDarkMode
-                ? Colors.black.withOpacity(0.2)
-                : Colors.grey.withOpacity(0.1),
+            color:
+                isDarkMode
+                    ? Colors.black.withOpacity(0.2)
+                    : Colors.grey.withOpacity(0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -87,6 +87,26 @@ class HabitItem extends StatelessWidget {
                               ),
                             ),
                           ),
+                          // Priority save button
+                          if (onFavoriteToggle != null) ...[
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: onFavoriteToggle,
+                              child: Icon(
+                                habit['isFavorite'] == true
+                                    ? Icons.save_rounded
+                                    : Icons.save_outlined,
+                                color:
+                                    habit['isFavorite'] == true
+                                        ? const Color(0xFF4B6EFF)
+                                        : (isDarkMode
+                                            ? Colors.white54
+                                            : Colors.black54),
+                                size: 20,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 8,
